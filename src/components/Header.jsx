@@ -31,7 +31,8 @@ export default function Header() {
   }
 
   return (
-    <header className="gakki-header">
+      <header className="gakki-header">
+      <div className="gakki-header-decoracao" aria-hidden="true"></div>
       <div className="container">
         <Link to="/" className="gakki-logo">
           <span className="marca" aria-hidden="true"></span>

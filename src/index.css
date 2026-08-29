@@ -88,9 +88,11 @@ button { font-family: inherit; cursor: pointer; }
   color: #f4e9d3;
   border-bottom: 3px solid var(--cor-latao);
   position: relative;
-  overflow: hidden;
 }
-.gakki-header::before {
+.gakki-header-decoracao {
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;
+}
+.gakki-header-decoracao::before {
   content: "";
   position: absolute;
   top: -60px; right: -40px;
@@ -99,7 +101,7 @@ button { font-family: inherit; cursor: pointer; }
   border: 1px solid var(--cor-latao);
   opacity: 0.18;
 }
-.gakki-header::after {
+.gakki-header-decoracao::after {
   content: "";
   position: absolute;
   top: -30px; right: -10px;
@@ -111,6 +113,7 @@ button { font-family: inherit; cursor: pointer; }
 
 .gakki-header .container {
   position: relative;
+  z-index: 1;
   display: flex; align-items: center; justify-content: space-between;
   padding-top: 1.1rem; padding-bottom: 1.1rem; gap: 1.5rem; flex-wrap: wrap;
 }
