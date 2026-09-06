@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { ShoppingCart, User, Package, Tag, RefreshCw, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import LogoGakki from "./LogoGakki";
 
 export default function Header() {
   const { usuario, logout, isAdmin } = useAuth();
@@ -15,8 +16,17 @@ export default function Header() {
     function fecharAoClicarFora(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuAberto(false);
     }
+    // Fechar com ESC além do clique fora: exigência básica de acessibilidade
+    // para qualquer menu suspenso.
+    function fecharComEsc(e) {
+      if (e.key === "Escape") setMenuAberto(false);
+    }
     document.addEventListener("mousedown", fecharAoClicarFora);
-    return () => document.removeEventListener("mousedown", fecharAoClicarFora);
+    document.addEventListener("keydown", fecharComEsc);
+    return () => {
+      document.removeEventListener("mousedown", fecharAoClicarFora);
+      document.removeEventListener("keydown", fecharComEsc);
+    };
   }, []);
 
   function sair() {
@@ -31,21 +41,26 @@ export default function Header() {
   }
 
   return (
-      <header className="gakki-header">
-      <div className="gakki-header-decoracao" aria-hidden="true"></div>
+    <header className="gakki-header">
       <div className="container">
-        <Link to="/" className="gakki-logo">
-          <span className="marca" aria-hidden="true"></span>
-          GAKKI <span>store</span>
+        <Link to="/" className="gakki-logo" aria-label="GAKKI store — página inicial">
+          <LogoGakki size={34} className="simbolo" />
+          <span className="palavra-marca">
+            GAKKI <span className="palavra-marca-sufixo">store</span>
+          </span>
         </Link>
 
-        <nav className="gakki-nav">
-          {!isAdmin && <Link to="/catalogo">Catálogo</Link>}
+        <nav className="gakki-nav" aria-label="Navegação principal">
+          {!isAdmin && (
+            <NavLink to="/catalogo" className={({ isActive }) => (isActive ? "ativo" : undefined)}>
+              Catálogo
+            </NavLink>
+          )}
 
           {usuario && !isAdmin && (
-            <Link to="/carrinho" className="icone-acao" aria-label="Carrinho">
+            <Link to="/carrinho" className="icone-acao" aria-label={`Carrinho (${totalItens} ${totalItens === 1 ? "item" : "itens"})`}>
               <ShoppingCart size={20} strokeWidth={1.8} />
-              {totalItens > 0 && <span className="badge-carrinho">{totalItens}</span>}
+              {totalItens > 0 && <span className="badge-carrinho" aria-hidden="true">{totalItens}</span>}
             </Link>
           )}
 
@@ -57,26 +72,32 @@ export default function Header() {
 
           {usuario ? (
             <div className="menu-usuario" ref={menuRef}>
-              <button className="icone-acao avatar-btn" onClick={() => setMenuAberto((a) => !a)} aria-label="Menu da conta">
-                <span className="avatar-iniciais">{iniciais(usuario.nome)}</span>
-                <ChevronDown size={15} strokeWidth={2} />
+              <button
+                className="icone-acao avatar-btn"
+                onClick={() => setMenuAberto((a) => !a)}
+                aria-label="Menu da conta"
+                aria-expanded={menuAberto}
+                aria-haspopup="menu"
+              >
+                <span className="avatar-iniciais" aria-hidden="true">{iniciais(usuario.nome)}</span>
+                <ChevronDown size={15} strokeWidth={2} className={menuAberto ? "seta-menu aberta" : "seta-menu"} />
               </button>
 
               {menuAberto && (
-                <div className="menu-dropdown">
+                <div className="menu-dropdown" role="menu">
                   <div className="menu-dropdown-cabecalho">
                     <strong>{usuario.nome}</strong>
                     <span>{isAdmin ? "Administrador" : "Cliente"}</span>
                   </div>
                   {!isAdmin && (
                     <>
-                      <Link to="/pedidos" onClick={() => setMenuAberto(false)}><Package size={16} strokeWidth={1.8} /> Meus pedidos</Link>
-                      <Link to="/trocas" onClick={() => setMenuAberto(false)}><RefreshCw size={16} strokeWidth={1.8} /> Trocas</Link>
-                      <Link to="/cupons" onClick={() => setMenuAberto(false)}><Tag size={16} strokeWidth={1.8} /> Cupons</Link>
-                      <Link to="/perfil" onClick={() => setMenuAberto(false)}><User size={16} strokeWidth={1.8} /> Perfil</Link>
+                      <Link to="/pedidos" role="menuitem" onClick={() => setMenuAberto(false)}><Package size={16} strokeWidth={1.8} /> Meus pedidos</Link>
+                      <Link to="/trocas" role="menuitem" onClick={() => setMenuAberto(false)}><RefreshCw size={16} strokeWidth={1.8} /> Trocas</Link>
+                      <Link to="/cupons" role="menuitem" onClick={() => setMenuAberto(false)}><Tag size={16} strokeWidth={1.8} /> Cupons</Link>
+                      <Link to="/perfil" role="menuitem" onClick={() => setMenuAberto(false)}><User size={16} strokeWidth={1.8} /> Perfil</Link>
                     </>
                   )}
-                  <button onClick={sair}><LogOut size={16} strokeWidth={1.8} /> Sair</button>
+                  <button onClick={sair} role="menuitem"><LogOut size={16} strokeWidth={1.8} /> Sair</button>
                 </div>
               )}
             </div>
