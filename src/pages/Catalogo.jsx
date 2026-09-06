@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PackageX, X } from "lucide-react";
 import { api } from "../api/client";
 import ProdutoCard from "../components/ProdutoCard";
@@ -25,9 +26,28 @@ export default function Catalogo() {
   const [categorias, setCategorias] = useState([]);
   const [fabricantes, setFabricantes] = useState([]);
 
-  const [filtros, setFiltros] = useState(FILTROS_VAZIOS);
+  // A categoria também vive na URL (`/catalogo?categoria=3`), para que os
+  // atalhos da home abram a vitrine já filtrada e o link seja
+  // compartilhável. Os demais filtros são refinamento de sessão e ficam
+  // só no state — colocar tudo na URL deixaria o endereço ilegível.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filtros, setFiltros] = useState(() => ({
+    ...FILTROS_VAZIOS,
+    categoriaId: searchParams.get("categoria") || "",
+  }));
   const [buscaAplicada, setBuscaAplicada] = useState("");
   const [ordenacao, setOrdenacao] = useState("relevancia");
+
+  // Mão inversa: mexer nos chips reescreve a URL. `replace: true` evita
+  // encher o histórico — o botão voltar não deve percorrer cada filtro.
+  useEffect(() => {
+    const naUrl = searchParams.get("categoria") || "";
+    if (naUrl === filtros.categoriaId) return;
+    const proximo = new URLSearchParams(searchParams);
+    if (filtros.categoriaId) proximo.set("categoria", filtros.categoriaId);
+    else proximo.delete("categoria");
+    setSearchParams(proximo, { replace: true });
+  }, [filtros.categoriaId, searchParams, setSearchParams]);
 
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");

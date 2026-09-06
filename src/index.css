@@ -129,24 +129,6 @@ button { font-family: inherit; cursor: pointer; }
 .container-medio { max-width: var(--largura-container-medio); }
 @media (max-width: 700px) { :root { --recuo-lateral: 1.25rem; } }
 
-/* ---------- Roseta decorativa (será substituída na Parte 2) ---------- */
-
-.roseta {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid currentColor;
-  opacity: 0.14;
-  pointer-events: none;
-}
-.roseta::before, .roseta::after {
-  content: "";
-  position: absolute;
-  inset: 14%;
-  border-radius: 50%;
-  border: 1px solid currentColor;
-}
-.roseta::after { inset: 28%; }
-
 /* ---------- Header ---------- */
 
 .gakki-header {
@@ -531,31 +513,70 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
   padding: 1.8rem var(--recuo-lateral); font-size: 0.84rem; text-align: center;
 }
 
-/* ---------- Hero (Home) ---------- */
+/* ---------- Home: hero, categorias e destaques ---------- */
 
-.hero-gakki {
-  position: relative;
-  text-align: center;
-  padding: 4.5rem 0 4rem;
-  overflow: hidden;
+.hero {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  gap: 3rem; align-items: center;
+  padding-top: 2rem; padding-bottom: 3.5rem;
 }
-.hero-gakki .roseta-grande {
-  position: absolute; top: 50%; left: 50%;
-  width: 520px; height: 520px;
-  transform: translate(-50%, -50%);
-  color: var(--cor-texto-fraco);
-  opacity: 0.35;
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; gap: 2rem; padding-bottom: 2.5rem; }
+  .hero-visual { display: none; }
 }
-.hero-gakki h1 {
-  font-size: clamp(2.6rem, 5vw, 3.6rem);
-  font-weight: 800;
-  position: relative;
+
+.hero-etiqueta {
+  display: inline-block; margin-bottom: .9rem;
+  font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--cor-primaria);
 }
-.hero-gakki p.subtitulo {
-  position: relative;
-  font-size: 1.1rem; color: var(--cor-texto-suave);
-  max-width: 540px; margin: 0 auto 2rem;
+.hero h1 {
+  font-size: clamp(2.4rem, 4.6vw, 3.5rem);
+  font-weight: 800; letter-spacing: -0.035em;
+  margin-bottom: .9rem; max-width: 15ch;
 }
+.hero p { font-size: 1.06rem; max-width: 46ch; margin: 0 0 1.9rem; }
+.hero-acoes { display: flex; gap: .7rem; flex-wrap: wrap; }
+
+.hero-visual {
+  aspect-ratio: 4 / 3;
+  background: var(--cor-fundo-alt); border-radius: var(--raio-lg);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.marca-ampliada { color: var(--cor-tinta); opacity: .9; }
+
+.faixa-garantias {
+  background: var(--cor-fundo-alt);
+  border-top: 1px solid var(--cor-borda); border-bottom: 1px solid var(--cor-borda);
+  padding: 1.4rem var(--recuo-lateral);
+  margin-bottom: 3.5rem;
+}
+.faixa-garantias ul {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem;
+}
+.faixa-garantias li { display: flex; align-items: center; gap: .7rem; font-size: 0.85rem; color: var(--cor-texto-suave); }
+.faixa-garantias svg { color: var(--cor-primaria); flex-shrink: 0; }
+.faixa-garantias strong { display: block; color: var(--cor-tinta); font-size: 0.9rem; font-weight: 700; }
+
+.secao-home { margin-bottom: 3.5rem; }
+.cabecalho-secao {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 1rem; flex-wrap: wrap; margin-bottom: 1.4rem;
+}
+.cabecalho-secao h2 { font-size: 1.5rem; margin: 0; }
+.link-secao { display: inline-flex; align-items: center; gap: .35rem; font-size: 0.88rem; font-weight: 700; color: var(--cor-primaria); }
+.link-secao:hover { color: var(--cor-primaria-escura); }
+
+.grade-categorias { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+.cartao-categoria {
+  display: flex; flex-direction: column; align-items: center; gap: .7rem;
+  padding: 1.5rem 1rem; text-align: center;
+  font-size: 0.9rem; font-weight: 700; color: var(--cor-tinta);
+}
+.cartao-categoria svg { width: 40px; height: 40px; color: var(--cor-primaria); }
+.cartao-categoria:hover { border-color: var(--cor-primaria); box-shadow: var(--sombra-forte); transform: translateY(-3px); }
+@media (prefers-reduced-motion: reduce) { .cartao-categoria:hover { transform: none; } }
 
 /* ---------- Dashboard (admin) ---------- */
 
