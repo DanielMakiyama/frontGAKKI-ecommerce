@@ -40,6 +40,15 @@
   --fonte-corpo: "Kumbh Sans", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --fonte-display: var(--fonte-corpo);
 
+  /* --- Layout -------------------------------------------- */
+  /* Recuo lateral da página. Quem aplica são as FAIXAS (header, main,
+     rodapé), não o .container — ver comentário em `.container`.
+     Ajuste aqui para aproximar ou afastar tudo das bordas. */
+  --recuo-lateral: 10rem;
+  /* Páginas de leitura/formulário (login, perfil) ficam ruins largas:
+     linha de texto comprida demais cansa. Elas usam .container-estreito. */
+  --largura-container-estreito: 720px;
+
   /* --- Forma --------------------------------------------- */
   --raio-sm: 8px;
   --raio: 10px;
@@ -98,7 +107,23 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 .app-shell { min-height: 100%; display: flex; flex-direction: column; }
-.container { max-width: 1140px; margin: 0 auto; padding: 0 1.5rem; width: 100%; }
+/**
+ * O .container NÃO tem padding lateral, de propósito.
+ *
+ * Ele acumulava duas funções que brigam entre si: dar o recuo das bordas
+ * e limitar a largura. Como tudo aqui é `box-sizing: border-box`, o
+ * padding é descontado de dentro da largura — então uma página com
+ * `maxWidth: 480` acabava com 480 − 2×recuo de conteúdo real. Com um
+ * recuo grande, o formulário virava uma tira estreita no meio da tela.
+ *
+ * Agora o recuo é responsabilidade das FAIXAS (`.gakki-header`, `main`,
+ * `.footer-gakki`) e o .container só limita largura e centraliza. As
+ * duas coisas deixam de se interferir: aumentar o recuo afasta tudo das
+ * bordas sem nunca espremer o conteúdo de uma página estreita.
+ */
+.container { width: 100%; margin: 0 auto; }
+.container-estreito { max-width: var(--largura-container-estreito); }
+@media (max-width: 700px) { :root { --recuo-lateral: 1.25rem; } }
 
 /* ---------- Roseta decorativa (será substituída na Parte 2) ---------- */
 
@@ -126,6 +151,7 @@ button { font-family: inherit; cursor: pointer; }
   color: var(--cor-texto);
   border-bottom: 1px solid var(--cor-borda);
   position: sticky; top: 0; z-index: 30;
+  padding: 0 var(--recuo-lateral);   /* faixa aplica o recuo */
 }
 /* Sobra do tema antigo (círculos concêntricos no canto). O símbolo da
    marca agora é o componente <LogoGakki />, então isto some. */
@@ -279,7 +305,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- Layout genérico ---------- */
 
-main { flex: 1; padding: 2.5rem 0 4rem; }
+main { flex: 1; padding: 2.5rem var(--recuo-lateral) 4rem; }   /* faixa aplica o recuo */
 
 .pagina-titulo { margin-bottom: 1.75rem; }
 .titulo-com-icone { display: flex; align-items: center; gap: .6rem; }
@@ -287,22 +313,145 @@ main { flex: 1; padding: 2.5rem 0 4rem; }
 .pagina-titulo h1 { font-size: 2.1rem; }
 .pagina-titulo p { color: var(--cor-texto-suave); margin-top: -.3rem; }
 
-.grade-produtos { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 1.5rem; }
+.grade-produtos { display: grid; grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); gap: 1.5rem; }
 
-.produto-card { display: flex; flex-direction: column; overflow: hidden; }
-.produto-card:hover { box-shadow: var(--sombra-forte); transform: translateY(-3px); border-color: transparent; }
-.produto-card .imagem-placeholder {
-  height: 168px; background: var(--cor-fundo-alt);
-  display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
-}
-.produto-card .imagem-placeholder svg { width: 56px; height: 56px; color: var(--cor-primaria); position: relative; z-index: 1; }
 .imagem-placeholder { display: flex; align-items: center; justify-content: center; background: var(--cor-fundo-alt); }
 .imagem-placeholder svg { width: 96px; height: 96px; color: var(--cor-primaria); }
-.produto-card .conteudo { padding: 1.1rem; display: flex; flex-direction: column; gap: .35rem; flex: 1; }
+
+/* ---------- Card de produto ---------- */
+
+.produto-card { position: relative; display: flex; flex-direction: column; overflow: hidden; }
+.produto-card:hover { box-shadow: var(--sombra-forte); transform: translateY(-3px); border-color: transparent; }
+
+.produto-midia {
+  position: relative; height: 180px; background: var(--cor-fundo-alt);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+/* Seletor de FILHO DIRETO, não descendente: `.produto-midia svg` também
+   acertaria o ícone dentro do botão de favoritar e o esticaria para 58px. */
+.produto-midia > svg { width: 58px; height: 58px; color: var(--cor-primaria); }
+.produto-card.esgotado .produto-midia { opacity: .45; }
+
+/* Link de cobertura: o <a> fica no título (um só link no leitor de
+   tela), mas seu ::after se estica sobre o card inteiro, tornando tudo
+   clicável. O botão de favoritar sobe de z-index para ficar por cima. */
+.link-cobertura { color: inherit; }
+.link-cobertura::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+.produto-card:hover .link-cobertura { color: var(--cor-primaria); }
+
+.btn-favorito {
+  position: absolute; top: .65rem; right: .65rem; z-index: 2;
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.92); border: 1px solid var(--cor-borda);
+  color: var(--cor-texto-suave);
+  transition: color .15s ease, transform .15s ease, border-color .15s ease;
+}
+.btn-favorito:hover { color: var(--cor-primaria); border-color: var(--cor-primaria); transform: scale(1.08); }
+.btn-favorito.ativo { color: var(--cor-primaria); border-color: var(--cor-primaria); }
+.btn-favorito.ativo svg { fill: currentColor; }
+
+.selo {
+  position: absolute; top: .65rem; left: .65rem; z-index: 2;
+  font-size: 0.66rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase;
+  padding: 4px 9px; border-radius: var(--raio-pill);
+}
+.selo-alerta { background: var(--cor-aviso-bg); color: var(--cor-aviso); }
+.selo-esgotado { background: var(--cor-tinta); color: #fff; }
+
+.produto-card .conteudo { padding: 1.1rem; display: flex; flex-direction: column; gap: .3rem; flex: 1; }
 .produto-card .categoria-tag { font-size: 0.68rem; text-transform: uppercase; letter-spacing: .1em; color: var(--cor-primaria); font-weight: 700; }
-.produto-card h3 { font-size: 1.02rem; margin: 0; font-weight: 700; }
-.produto-card .preco { font-size: 1.2rem; font-weight: 800; color: var(--cor-tinta); margin-top: auto; letter-spacing: -0.02em; }
+.produto-card h3 { font-size: 1rem; margin: 0; font-weight: 700; line-height: 1.35; }
 .produto-card .fabricante { font-size: 0.82rem; color: var(--cor-texto-suave); }
+.produto-card .bloco-preco { margin-top: auto; padding-top: .7rem; display: flex; flex-direction: column; gap: 1px; }
+.produto-card .preco { font-size: 1.2rem; font-weight: 800; color: var(--cor-tinta); letter-spacing: -0.02em; }
+.produto-card .parcelamento { font-size: 0.75rem; color: var(--cor-texto-suave); }
+
+/* ---------- Catálogo: layout, filtros e barra de resultados ---------- */
+
+.catalogo-layout { display: grid; grid-template-columns: 232px 1fr; gap: 2.75rem; align-items: start; }
+@media (max-width: 880px) { .catalogo-layout { grid-template-columns: 1fr; gap: 1.75rem; } }
+
+.filtros-sidebar { display: flex; flex-direction: column; gap: 1.6rem; position: sticky; top: 88px; }
+@media (max-width: 880px) { .filtros-sidebar { position: static; } }
+
+.filtro-bloco { display: flex; flex-direction: column; gap: .6rem; }
+.filtro-titulo {
+  font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--cor-texto-suave);
+}
+
+.chips-filtro { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip {
+  border: 1px solid var(--cor-borda); background: var(--cor-superficie);
+  color: var(--cor-texto-suave); border-radius: var(--raio-pill);
+  padding: .3rem .75rem; font-size: 0.8rem; font-weight: 600;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.chip:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); }
+.chip.ativo { background: var(--cor-primaria); border-color: var(--cor-primaria); color: #fff; }
+
+.filtro-lista { display: flex; flex-direction: column; gap: 1px; }
+.filtro-opcao {
+  background: none; border: none; text-align: left;
+  padding: .4rem .55rem; border-radius: var(--raio-sm);
+  font-size: 0.87rem; color: var(--cor-texto-suave); font-weight: 500;
+  transition: background .15s ease, color .15s ease;
+}
+.filtro-opcao:hover { background: var(--cor-fundo-alt); color: var(--cor-tinta); }
+.filtro-opcao.ativo { background: var(--cor-primaria-suave); color: var(--cor-primaria-escura); font-weight: 700; }
+
+.select-filtro {
+  border: 1px solid var(--cor-borda); border-radius: var(--raio-sm);
+  padding: .5rem .65rem; font-size: 0.87rem; font-family: inherit;
+  background: var(--cor-superficie); color: var(--cor-texto);
+}
+.select-filtro:focus { outline: 2px solid var(--cor-primaria); outline-offset: 1px; border-color: var(--cor-primaria); }
+
+.filtro-checkbox { display: flex; align-items: center; gap: .55rem; font-size: 0.87rem; color: var(--cor-texto-suave); cursor: pointer; }
+.filtro-checkbox input { width: 16px; height: 16px; accent-color: var(--cor-primaria); cursor: pointer; }
+
+.barra-resultados {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 1rem; flex-wrap: wrap; margin-bottom: 1.1rem;
+  padding-bottom: 1rem; border-bottom: 1px solid var(--cor-borda);
+}
+.contagem-resultados { margin: 0; font-size: 0.9rem; color: var(--cor-texto-suave); }
+.contagem-resultados strong { color: var(--cor-tinta); font-weight: 800; }
+.ordenacao { display: flex; align-items: center; gap: .55rem; font-size: 0.85rem; color: var(--cor-texto-suave); }
+.ordenacao label { white-space: nowrap; }
+
+.filtros-ativos { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.2rem; }
+.tag-filtro {
+  display: inline-flex; align-items: center; gap: .35rem;
+  background: var(--cor-primaria-suave); color: var(--cor-primaria-escura);
+  border: none; border-radius: var(--raio-pill);
+  padding: .28rem .55rem .28rem .7rem; font-size: 0.78rem; font-weight: 700;
+}
+.tag-filtro:hover { background: var(--cor-primaria); color: #fff; }
+
+/* ---------- Esqueleto de carregamento ---------- */
+
+.produto-card-esqueleto { overflow: hidden; }
+.produto-card-esqueleto .conteudo { padding: 1.1rem; display: flex; flex-direction: column; gap: .55rem; }
+.esqueleto {
+  background: linear-gradient(90deg, #f1ede9 25%, #f8f6f4 50%, #f1ede9 75%);
+  background-size: 200% 100%;
+  animation: brilho-esqueleto 1.4s ease-in-out infinite;
+  border-radius: var(--raio-sm);
+}
+.esqueleto-midia { height: 180px; border-radius: 0; }
+.esqueleto-linha { height: 12px; }
+.esqueleto-linha.curta { width: 40%; }
+.esqueleto-linha.media { width: 65%; }
+@keyframes brilho-esqueleto {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto { animation: none; }
+  .produto-card:hover { transform: none; }
+}
 
 .status-tag {
   display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 3px 10px;
@@ -375,7 +524,7 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
 .footer-gakki {
   background: var(--cor-fundo-alt); color: var(--cor-texto-suave);
   border-top: 1px solid var(--cor-borda);
-  padding: 1.8rem 0; font-size: 0.84rem; text-align: center;
+  padding: 1.8rem var(--recuo-lateral); font-size: 0.84rem; text-align: center;
 }
 
 /* ---------- Hero (Home) ---------- */
