@@ -48,6 +48,9 @@
   /* Páginas de leitura/formulário (login, perfil) ficam ruins largas:
      linha de texto comprida demais cansa. Elas usam .container-estreito. */
   --largura-container-estreito: 720px;
+  /* Página de produto: precisa de duas colunas confortáveis, mas não da
+     tela inteira — a 1800px a foto e o texto ficariam longe demais. */
+  --largura-container-medio: 1180px;
 
   /* --- Forma --------------------------------------------- */
   --raio-sm: 8px;
@@ -123,6 +126,7 @@ button { font-family: inherit; cursor: pointer; }
  */
 .container { width: 100%; margin: 0 auto; }
 .container-estreito { max-width: var(--largura-container-estreito); }
+.container-medio { max-width: var(--largura-container-medio); }
 @media (max-width: 700px) { :root { --recuo-lateral: 1.25rem; } }
 
 /* ---------- Roseta decorativa (será substituída na Parte 2) ---------- */
@@ -567,3 +571,118 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
 .metrica-label { font-size: 0.8rem; color: var(--cor-texto-suave); }
 .metrica-destaque { cursor: pointer; }
 .metrica-destaque:hover { box-shadow: var(--sombra-forte); transform: translateY(-3px); }
+
+
+/* =========================================================
+   Página de produto
+   ========================================================= */
+
+.trilha {
+  display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+  font-size: 0.82rem; color: var(--cor-texto-suave); margin-bottom: 1.6rem;
+}
+.trilha a:hover { color: var(--cor-primaria); }
+.trilha svg { color: var(--cor-texto-fraco); flex-shrink: 0; }
+.trilha [aria-current] { color: var(--cor-tinta); font-weight: 600; }
+
+.produto-detalhe {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 3.5rem; align-items: start;
+}
+@media (max-width: 900px) { .produto-detalhe { grid-template-columns: 1fr; gap: 2rem; } }
+
+/* ---------- Galeria ---------- */
+
+.galeria-produto { display: flex; flex-direction: column; gap: .9rem; }
+.galeria-principal {
+  aspect-ratio: 1 / 1;
+  background: var(--cor-fundo-alt); border-radius: var(--raio-lg);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.galeria-principal img { width: 100%; height: 100%; object-fit: cover; }
+.galeria-principal > svg { width: 44%; height: 44%; color: var(--cor-primaria); }
+
+.galeria-miniaturas { display: grid; grid-template-columns: repeat(4, 1fr); gap: .9rem; }
+.miniatura {
+  aspect-ratio: 1 / 1; padding: 0; overflow: hidden;
+  border: 2px solid transparent; border-radius: var(--raio);
+  background: var(--cor-fundo-alt);
+  transition: border-color .15s ease, opacity .15s ease;
+}
+.miniatura img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.miniatura:hover img { opacity: .6; }
+.miniatura.ativa { border-color: var(--cor-primaria); }
+.miniatura.ativa img { opacity: .5; }
+
+/* ---------- Coluna de compra ---------- */
+
+.produto-compra { display: flex; flex-direction: column; gap: 0; }
+
+.fabricante-destaque {
+  font-size: 0.76rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--cor-primaria); margin-bottom: .7rem;
+}
+.produto-compra h1 { font-size: clamp(1.9rem, 3.2vw, 2.6rem); margin: 0 0 .8rem; }
+
+.lista-categorias { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.1rem; }
+/* Mesma pílula do filtro, sem comportamento de botão. */
+.chip-estatico { cursor: default; }
+.chip-estatico:hover { border-color: var(--cor-borda); color: var(--cor-texto-suave); }
+
+.descricao-produto { font-size: 1rem; line-height: 1.7; margin: 0 0 1.5rem; }
+
+.bloco-valores { display: flex; flex-direction: column; gap: 2px; margin-bottom: .8rem; }
+.preco-grande { font-size: 2.1rem; font-weight: 800; color: var(--cor-tinta); letter-spacing: -0.03em; line-height: 1.1; }
+.bloco-valores .parcelamento { font-size: 0.88rem; color: var(--cor-texto-suave); }
+
+.aviso-estoque {
+  margin: 0 0 1.4rem; font-size: 0.85rem; font-weight: 600; color: var(--cor-sucesso);
+}
+.aviso-estoque.indisponivel { color: var(--cor-perigo); }
+
+.aviso-sucesso {
+  display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
+  background: var(--cor-sucesso-bg); color: var(--cor-sucesso);
+  padding: .65rem .85rem; border-radius: var(--raio-sm);
+  font-size: 0.88rem; font-weight: 600; margin: 0 0 1rem;
+}
+.aviso-sucesso a { text-decoration: underline; }
+
+/* ---------- Ações ---------- */
+
+.acoes-compra { display: flex; align-items: stretch; gap: .75rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
+
+.seletor-quantidade {
+  display: flex; align-items: center;
+  background: var(--cor-fundo-alt); border-radius: var(--raio); padding: .25rem;
+}
+.seletor-quantidade button {
+  width: 38px; height: 38px; border: none; background: none; border-radius: var(--raio-sm);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--cor-primaria); transition: background .15s ease;
+}
+.seletor-quantidade button:hover:not(:disabled) { background: var(--cor-primaria-suave); }
+.seletor-quantidade button:disabled { color: var(--cor-texto-fraco); cursor: not-allowed; }
+.seletor-quantidade input {
+  width: 46px; border: none; background: none; text-align: center;
+  font-family: inherit; font-size: 1rem; font-weight: 700; color: var(--cor-tinta);
+  -moz-appearance: textfield; appearance: textfield;
+}
+.seletor-quantidade input::-webkit-outer-spin-button,
+.seletor-quantidade input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.seletor-quantidade input:focus { outline: 2px solid var(--cor-primaria); outline-offset: 2px; border-radius: 4px; }
+
+.btn-comprar { flex: 1; min-width: 220px; padding: .85rem 1.4rem; font-size: 0.95rem; }
+.btn-favorito-grande { position: static; width: 48px; height: 48px; border-radius: var(--raio); }
+
+.garantias { list-style: none; margin: 0 0 1.6rem; padding: 0; display: flex; flex-direction: column; gap: .55rem; }
+.garantias li { display: flex; align-items: center; gap: .55rem; font-size: 0.87rem; color: var(--cor-texto-suave); }
+.garantias svg { color: var(--cor-primaria); flex-shrink: 0; }
+
+.ficha-tecnica {
+  margin: 0; padding-top: 1.3rem; border-top: 1px solid var(--cor-borda);
+  display: flex; flex-direction: column; gap: .55rem;
+}
+.ficha-tecnica > div { display: flex; gap: .6rem; font-size: 0.87rem; }
+.ficha-tecnica dt { color: var(--cor-texto-suave); min-width: 148px; }
+.ficha-tecnica dd { margin: 0; color: var(--cor-tinta); font-weight: 600; }
