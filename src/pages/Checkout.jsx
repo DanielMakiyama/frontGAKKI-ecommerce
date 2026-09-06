@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { CheckCircle2, CreditCard, MapPin, Plus, Tag, Trash2, X } from "lucide-react";
 import { api } from "../api/client";
 import { useCart } from "../context/CartContext";
+import { formatarBRL } from "../components/ProdutoCard";
+
+/** "PAGAMENTO_REALIZADO" → "Pagamento realizado" */
+function rotularStatus(status) {
+  const texto = String(status || "").replace(/_/g, " ").toLowerCase();
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
 
 export default function Checkout() {
   const { carrinho, recarregar } = useCart();
@@ -60,6 +68,7 @@ export default function Checkout() {
   // Nota: o valor exato dos cupons só é confirmado no backend; aqui mostramos
   // quantos foram adicionados, a validação de cobertura total acontece na confirmação.
   const faltaAlocar = Math.max(0, totalPedido - totalPagamentos);
+  const podeConfirmar = enderecoId && !carregandoFrete && (pagamentos.length > 0 || codigosCupom.length > 0);
 
   async function salvarNovoEndereco(e) {
     e.preventDefault();
@@ -98,8 +107,16 @@ export default function Checkout() {
     setPagamentos((p) => p.filter((_, i) => i !== index));
   }
 
+  /** Joga o que falta para fechar o total nesta linha — evita o cliente
+   *  calcular a diferença na mão quando divide entre dois cartões. */
+  function alocarRestante(index) {
+    const valorLinha = Number(pagamentos[index]?.valor || 0);
+    const restanteSemEsta = Math.max(0, totalPedido - (totalPagamentos - valorLinha));
+    atualizarPagamento(index, "valor", restanteSemEsta.toFixed(2));
+  }
+
   function adicionarCupom() {
-    const codigo = cupomAtual.trim();
+    const codigo = cupomAtual.trim().toUpperCase();
     if (!codigo || codigosCupom.includes(codigo)) return;
     setCodigosCupom((c) => [...c, codigo]);
     setCupomAtual("");
@@ -131,152 +148,237 @@ export default function Checkout() {
 
   if (pedidoCriado) {
     return (
-      <div className="container" style={{ maxWidth: 520 }}>
-        <div className="card card-pad" style={{ textAlign: "center" }}>
-          <h1>Pedido realizado! 🎉</h1>
-          <p>Número do pedido: <strong>{pedidoCriado.numero}</strong></p>
-          <p>Status: <span className={`status-tag status-${pedidoCriado.status}`}>{pedidoCriado.status}</span></p>
-          <p style={{ marginTop: "1rem" }}>
-            Total: <strong>{pedidoCriado.valorTotal?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</strong>
-          </p>
-          <button className="btn btn-primario" style={{ marginTop: "1.5rem" }} onClick={() => navigate("/pedidos")}>
-            Ver meus pedidos
-          </button>
+      <div className="container container-estreito">
+        <div className="card card-pad confirmacao-pedido">
+          <CheckCircle2 size={52} strokeWidth={1.4} />
+          <h1>Pedido realizado</h1>
+          <p>Enviamos a confirmação para o seu e-mail.</p>
+
+          <dl className="ficha-tecnica">
+            <div><dt>Número do pedido</dt><dd>{pedidoCriado.numero}</dd></div>
+            <div><dt>Status</dt><dd><span className={`status-tag status-${pedidoCriado.status}`}>{rotularStatus(pedidoCriado.status)}</span></dd></div>
+            <div><dt>Total</dt><dd>{formatarBRL(pedidoCriado.valorTotal)}</dd></div>
+          </dl>
+
+          <div className="acoes-confirmacao">
+            <button className="btn btn-primario" onClick={() => navigate("/pedidos")}>Ver meus pedidos</button>
+            <Link to="/catalogo" className="btn btn-secundario">Continuar comprando</Link>
+          </div>
         </div>
       </div>
     );
   }
 
   if (!carrinho || carrinho.itens.length === 0) {
-    return <div className="container"><p>Seu carrinho está vazio.</p></div>;
+    return (
+      <div className="container container-medio">
+        <div className="card card-pad estado-vazio">
+          <p>Seu carrinho está vazio.</p>
+          <Link to="/catalogo" className="btn btn-primario">Ver catálogo</Link>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container" style={{ maxWidth: 640 }}>
+    <div className="container container-medio">
       <div className="pagina-titulo"><h1>Finalizar compra</h1></div>
 
       {erro && <div className="erro-form">{erro}</div>}
 
-      <div className="card card-pad" style={{ marginBottom: "1.25rem" }}>
-        <h3>Endereço de entrega</h3>
-        {enderecos.length > 0 && !novoEndereco && (
-          <div className="campo">
-            <select value={enderecoId} onChange={(e) => setEnderecoId(e.target.value)}>
-              {enderecos.map((e) => (
-                <option key={e.id} value={e.id}>{e.apelido} — {e.logradouro}, {e.numero} ({e.cidade}/{e.estado})</option>
-              ))}
-            </select>
-          </div>
-        )}
-        {!novoEndereco ? (
-          <button className="btn btn-secundario btn-sm" onClick={() => setNovoEndereco(true)}>+ Novo endereço</button>
-        ) : (
-          <form onSubmit={salvarNovoEndereco}>
-            <div className="campo"><label>Apelido</label><input required value={formEndereco.apelido} onChange={(e) => setFormEndereco({ ...formEndereco, apelido: e.target.value })} /></div>
-            <div className="campo"><label>Logradouro</label><input required value={formEndereco.logradouro} onChange={(e) => setFormEndereco({ ...formEndereco, logradouro: e.target.value })} /></div>
-            <div style={{ display: "flex", gap: "0.75rem" }}>
-              <div className="campo" style={{ flex: 1 }}><label>Número</label><input value={formEndereco.numero} onChange={(e) => setFormEndereco({ ...formEndereco, numero: e.target.value })} /></div>
-              <div className="campo" style={{ flex: 2 }}><label>Complemento</label><input value={formEndereco.complemento} onChange={(e) => setFormEndereco({ ...formEndereco, complemento: e.target.value })} /></div>
+      <div className="checkout-layout">
+        {/* A numeração 1-2-3 vem de um contador CSS (ver .passo no index.css),
+            não de números escritos aqui: reordenar as etapas não exige
+            renumerar nada no JSX. */}
+        <div className="checkout-passos">
+
+          <section className="card card-pad passo">
+            <h2 className="passo-titulo"><MapPin size={18} strokeWidth={1.9} /> Endereço de entrega</h2>
+
+            {enderecos.length > 0 && !novoEndereco && (
+              <div className="lista-opcoes" role="radiogroup" aria-label="Endereço de entrega">
+                {enderecos.map((e) => (
+                  <label key={e.id} className={`opcao-selecionavel${enderecoId === String(e.id) ? " ativa" : ""}`}>
+                    <input
+                      type="radio"
+                      name="endereco"
+                      value={e.id}
+                      checked={enderecoId === String(e.id)}
+                      onChange={(ev) => setEnderecoId(ev.target.value)}
+                    />
+                    <span className="opcao-conteudo">
+                      <strong>{e.apelido}{e.principal && <span className="marcador-padrao">principal</span>}</strong>
+                      <span>{e.logradouro}, {e.numero}{e.complemento ? ` — ${e.complemento}` : ""}</span>
+                      <span>{e.cidade}/{e.estado} · CEP {e.cep}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {!novoEndereco ? (
+              <button className="btn btn-secundario btn-sm" onClick={() => setNovoEndereco(true)}>
+                <Plus size={15} strokeWidth={2.2} /> Novo endereço
+              </button>
+            ) : (
+              <form onSubmit={salvarNovoEndereco} className="form-embutido">
+                <div className="campo"><label>Apelido</label><input required value={formEndereco.apelido} onChange={(e) => setFormEndereco({ ...formEndereco, apelido: e.target.value })} /></div>
+                <div className="campo"><label>Logradouro</label><input required value={formEndereco.logradouro} onChange={(e) => setFormEndereco({ ...formEndereco, logradouro: e.target.value })} /></div>
+                <div className="linha-campos">
+                  <div className="campo" style={{ flex: 1 }}><label>Número</label><input value={formEndereco.numero} onChange={(e) => setFormEndereco({ ...formEndereco, numero: e.target.value })} /></div>
+                  <div className="campo" style={{ flex: 2 }}><label>Complemento</label><input value={formEndereco.complemento} onChange={(e) => setFormEndereco({ ...formEndereco, complemento: e.target.value })} /></div>
+                </div>
+                <div className="linha-campos">
+                  <div className="campo" style={{ flex: 2 }}><label>Cidade</label><input required value={formEndereco.cidade} onChange={(e) => setFormEndereco({ ...formEndereco, cidade: e.target.value })} /></div>
+                  <div className="campo" style={{ flex: 1 }}><label>UF</label><input required maxLength={2} value={formEndereco.estado} onChange={(e) => setFormEndereco({ ...formEndereco, estado: e.target.value.toUpperCase() })} /></div>
+                  <div className="campo" style={{ flex: 1 }}><label>CEP</label><input required value={formEndereco.cep} onChange={(e) => setFormEndereco({ ...formEndereco, cep: e.target.value })} /></div>
+                </div>
+                <div className="acoes-form">
+                  <button className="btn btn-primario btn-sm">Salvar endereço</button>
+                  <button type="button" className="btn btn-secundario btn-sm" onClick={() => setNovoEndereco(false)}>Cancelar</button>
+                </div>
+              </form>
+            )}
+          </section>
+
+          <section className="card card-pad passo">
+            <h2 className="passo-titulo"><CreditCard size={18} strokeWidth={1.9} /> Pagamento</h2>
+            <p className="passo-ajuda">
+              Combine um ou mais cartões e/ou cupons — a soma precisa cobrir o total do pedido.
+            </p>
+
+            {pagamentos.map((linha, i) => (
+              <div key={i} className="linha-pagamento">
+                <select
+                  className="select-filtro"
+                  value={linha.cartaoCreditoId}
+                  onChange={(e) => atualizarPagamento(i, "cartaoCreditoId", e.target.value)}
+                  aria-label={`Cartão da linha ${i + 1}`}
+                >
+                  {cartoes.map((c) => <option key={c.id} value={c.id}>{c.apelido} •••• {c.ultimosDigitos}</option>)}
+                </select>
+
+                <div className="campo-moeda">
+                  <span aria-hidden="true">R$</span>
+                  <input
+                    type="number" step="0.01" min="0" placeholder="0,00"
+                    value={linha.valor}
+                    onChange={(e) => atualizarPagamento(i, "valor", e.target.value)}
+                    aria-label={`Valor da linha ${i + 1}`}
+                  />
+                </div>
+
+                <button type="button" className="btn btn-secundario btn-sm" onClick={() => alocarRestante(i)}>
+                  Restante
+                </button>
+                <button type="button" className="btn-icone-perigo" onClick={() => removerPagamento(i)} aria-label={`Remover linha ${i + 1}`}>
+                  <Trash2 size={16} strokeWidth={1.8} />
+                </button>
+              </div>
+            ))}
+
+            <div className="acoes-form">
+              <button className="btn btn-secundario btn-sm" disabled={cartoes.length === 0} onClick={adicionarLinhaPagamento}>
+                <Plus size={15} strokeWidth={2.2} /> Usar um cartão
+              </button>
+              <button className="btn btn-secundario btn-sm" onClick={() => setNovoCartao(true)}>
+                <Plus size={15} strokeWidth={2.2} /> Cadastrar cartão
+              </button>
             </div>
-            <div style={{ display: "flex", gap: "0.75rem" }}>
-              <div className="campo" style={{ flex: 2 }}><label>Cidade</label><input required value={formEndereco.cidade} onChange={(e) => setFormEndereco({ ...formEndereco, cidade: e.target.value })} /></div>
-              <div className="campo" style={{ flex: 1 }}><label>UF</label><input required maxLength={2} value={formEndereco.estado} onChange={(e) => setFormEndereco({ ...formEndereco, estado: e.target.value.toUpperCase() })} /></div>
-              <div className="campo" style={{ flex: 1 }}><label>CEP</label><input required value={formEndereco.cep} onChange={(e) => setFormEndereco({ ...formEndereco, cep: e.target.value })} /></div>
+
+            {novoCartao && (
+              <form onSubmit={salvarNovoCartao} className="form-embutido">
+                <div className="campo"><label>Apelido</label><input required value={formCartao.apelido} onChange={(e) => setFormCartao({ ...formCartao, apelido: e.target.value })} /></div>
+                <div className="linha-campos">
+                  <div className="campo" style={{ flex: 1 }}><label>Últimos 4 dígitos</label><input required maxLength={4} value={formCartao.ultimosDigitos} onChange={(e) => setFormCartao({ ...formCartao, ultimosDigitos: e.target.value })} /></div>
+                  <div className="campo" style={{ flex: 1 }}><label>Bandeira</label><input required placeholder="Visa, Master…" value={formCartao.bandeira} onChange={(e) => setFormCartao({ ...formCartao, bandeira: e.target.value })} /></div>
+                  <div className="campo" style={{ flex: 1 }}><label>Validade</label><input required placeholder="MM/AAAA" value={formCartao.validade} onChange={(e) => setFormCartao({ ...formCartao, validade: e.target.value })} /></div>
+                </div>
+                <div className="campo"><label>Nome do titular</label><input required value={formCartao.nomeTitular} onChange={(e) => setFormCartao({ ...formCartao, nomeTitular: e.target.value })} /></div>
+                <div className="acoes-form">
+                  <button className="btn btn-primario btn-sm">Salvar cartão</button>
+                  <button type="button" className="btn btn-secundario btn-sm" onClick={() => setNovoCartao(false)}>Cancelar</button>
+                </div>
+              </form>
+            )}
+          </section>
+
+          <section className="card card-pad passo">
+            <h2 className="passo-titulo"><Tag size={18} strokeWidth={1.9} /> Cupons</h2>
+
+            <div className="linha-cupom">
+              <div className="campo-com-icone">
+                <Tag size={16} strokeWidth={1.8} />
+                <input
+                  placeholder="ex.: CUP-ABC123"
+                  value={cupomAtual}
+                  onChange={(e) => setCupomAtual(e.target.value)}
+                  // Enter dentro do campo adiciona; sem isso o cliente
+                  // precisa tirar a mão do teclado para clicar.
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); adicionarCupom(); } }}
+                  aria-label="Código do cupom"
+                />
+              </div>
+              <button className="btn btn-secundario btn-sm" onClick={adicionarCupom}>Adicionar</button>
             </div>
-            <button className="btn btn-primario btn-sm">Salvar endereço</button>
-          </form>
-        )}
-      </div>
 
-      <div className="card card-pad" style={{ marginBottom: "1.25rem" }}>
-        <h3>Forma de pagamento</h3>
-        <p style={{ fontSize: "0.82rem", color: "var(--cor-texto-suave)" }}>
-          Combine um ou mais cartões e/ou cupons — a soma precisa cobrir o total do pedido.
-        </p>
+            {codigosCupom.length > 0 && (
+              <div className="filtros-ativos" style={{ marginTop: ".8rem", marginBottom: 0 }}>
+                {codigosCupom.map((c) => (
+                  <button key={c} className="tag-filtro" onClick={() => removerCupom(c)} aria-label={`Remover cupom ${c}`}>
+                    {c} <X size={13} strokeWidth={2.5} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
 
-        {/* Linhas de pagamento por cartão */}
-        {pagamentos.map((linha, i) => (
-          <div key={i} style={{ display: "flex", gap: ".5rem", alignItems: "center", marginBottom: ".5rem" }}>
-            <select style={{ flex: 2 }} value={linha.cartaoCreditoId} onChange={(e) => atualizarPagamento(i, "cartaoCreditoId", e.target.value)}>
-              {cartoes.map((c) => <option key={c.id} value={c.id}>{c.apelido} •••• {c.ultimosDigitos}</option>)}
-            </select>
-            <input
-              type="number" step="0.01" min="0" placeholder="Valor (R$)"
-              style={{ flex: 1, padding: ".5rem", border: "1px solid var(--cor-borda)", borderRadius: 4 }}
-              value={linha.valor}
-              onChange={(e) => atualizarPagamento(i, "valor", e.target.value)}
-            />
-            <button className="btn btn-perigo btn-sm" onClick={() => removerPagamento(i)}>Remover</button>
+        <aside className="resumo-lateral card card-pad" aria-label="Resumo do pedido">
+          <h2>Resumo</h2>
+
+          <div className="linha-resumo">
+            <span>Subtotal dos itens</span>
+            <span>{formatarBRL(carrinho?.valorTotal || 0)}</span>
           </div>
-        ))}
-
-        <div style={{ display: "flex", gap: ".5rem", marginBottom: "1rem" }}>
-          <button className="btn btn-secundario btn-sm" disabled={cartoes.length === 0} onClick={adicionarLinhaPagamento}>
-            + Usar um cartão
-          </button>
-          <button className="btn btn-secundario btn-sm" onClick={() => setNovoCartao(true)}>+ Cadastrar novo cartão</button>
-        </div>
-
-        {novoCartao && (
-          <form onSubmit={salvarNovoCartao} style={{ marginBottom: "1rem", paddingTop: ".5rem", borderTop: "1px solid var(--cor-borda)" }}>
-            <div className="campo"><label>Apelido</label><input required value={formCartao.apelido} onChange={(e) => setFormCartao({ ...formCartao, apelido: e.target.value })} /></div>
-            <div style={{ display: "flex", gap: "0.75rem" }}>
-              <div className="campo" style={{ flex: 1 }}><label>Últimos 4 dígitos</label><input required maxLength={4} value={formCartao.ultimosDigitos} onChange={(e) => setFormCartao({ ...formCartao, ultimosDigitos: e.target.value })} /></div>
-              <div className="campo" style={{ flex: 1 }}><label>Bandeira</label><input required placeholder="Visa, Master…" value={formCartao.bandeira} onChange={(e) => setFormCartao({ ...formCartao, bandeira: e.target.value })} /></div>
-              <div className="campo" style={{ flex: 1 }}><label>Validade</label><input required placeholder="MM/AAAA" value={formCartao.validade} onChange={(e) => setFormCartao({ ...formCartao, validade: e.target.value })} /></div>
-            </div>
-            <div className="campo"><label>Nome do titular</label><input required value={formCartao.nomeTitular} onChange={(e) => setFormCartao({ ...formCartao, nomeTitular: e.target.value })} /></div>
-            <button className="btn btn-primario btn-sm">Salvar cartão</button>
-          </form>
-        )}
-
-        {/* Cupons */}
-        <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--cor-borda)" }}>
-          <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--cor-madeira)" }}>Cupons (promocional ou de troca)</label>
-          <div style={{ display: "flex", gap: ".5rem", marginTop: ".35rem" }}>
-            <input placeholder="ex.: CUP-ABC123" value={cupomAtual} onChange={(e) => setCupomAtual(e.target.value)}
-                   style={{ flex: 1, padding: ".55rem", border: "1px solid var(--cor-borda)", borderRadius: 4 }} />
-            <button className="btn btn-secundario btn-sm" onClick={adicionarCupom}>Adicionar</button>
-          </div>
-          {codigosCupom.length > 0 && (
-            <ul style={{ marginTop: ".5rem", paddingLeft: "1.1rem" }}>
-              {codigosCupom.map((c) => (
-                <li key={c}>{c} <button className="link" style={{ color: "var(--cor-perigo)" }} onClick={() => removerCupom(c)}>remover</button></li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      <div className="card card-pad">
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem", color: "var(--cor-texto-suave)", marginBottom: ".3rem" }}>
-          <span>Subtotal dos itens</span>
-          <span>{(carrinho?.valorTotal || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem", color: "var(--cor-texto-suave)" }}>
-          <span>Frete {carregandoFrete && "(calculando…)"}</span>
-          <span>{previsaoFrete ? previsaoFrete.valorFrete.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}</span>
-        </div>
-        <div className="resumo-total">
-          <span>Total do pedido</span>
-          <span>{totalPedido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-        </div>
-        <p style={{ fontSize: "0.8rem", color: "var(--cor-texto-suave)" }}>
-          alocado em cartões: {totalPagamentos.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-          {codigosCupom.length > 0 && ` + ${codigosCupom.length} cupom(ns)`}
-          {faltaAlocar > 0 && (
-            <span style={{ color: "var(--cor-perigo)", fontWeight: 600 }}>
-              {" "}· falta alocar {faltaAlocar.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          <div className="linha-resumo">
+            <span>Frete</span>
+            <span className={previsaoFrete ? undefined : "valor-pendente"}>
+              {carregandoFrete ? "calculando…" : previsaoFrete ? formatarBRL(previsaoFrete.valorFrete) : "—"}
             </span>
-          )}
-        </p>
-        <button
-          className="btn btn-primario btn-block"
-          disabled={enviando || !enderecoId || carregandoFrete || (pagamentos.length === 0 && codigosCupom.length === 0)}
-          onClick={finalizar}
-        >
-          {enviando ? "Processando…" : "Confirmar pedido"}
-        </button>
+          </div>
+
+          <div className="resumo-total">
+            <span>Total</span>
+            <span>{formatarBRL(totalPedido)}</span>
+          </div>
+
+          <div className="alocacao">
+            <div className="linha-resumo">
+              <span>Alocado em cartões</span>
+              <span>{formatarBRL(totalPagamentos)}</span>
+            </div>
+            {codigosCupom.length > 0 && (
+              <div className="linha-resumo">
+                <span>Cupons aplicados</span>
+                <span>{codigosCupom.length}</span>
+              </div>
+            )}
+            {faltaAlocar > 0 && (
+              <p className="falta-alocar" role="status">
+                Falta alocar {formatarBRL(faltaAlocar)}
+              </p>
+            )}
+          </div>
+
+          <button className="btn btn-primario btn-block" disabled={enviando || !podeConfirmar} onClick={finalizar}>
+            {enviando ? "Processando…" : "Confirmar pedido"}
+          </button>
+
+          <p className="nota-seguranca">
+            O valor dos cupons é validado na confirmação.
+          </p>
+        </aside>
       </div>
     </div>
   );

@@ -686,3 +686,157 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
 .ficha-tecnica > div { display: flex; gap: .6rem; font-size: 0.87rem; }
 .ficha-tecnica dt { color: var(--cor-texto-suave); min-width: 148px; }
 .ficha-tecnica dd { margin: 0; color: var(--cor-tinta); font-weight: 600; }
+
+
+/* =========================================================
+   Carrinho e checkout
+   ========================================================= */
+
+/* Coluna de conteúdo + resumo fixo à direita. O resumo é o elemento que
+   o cliente consulta o tempo todo enquanto mexe nos itens, então ele
+   acompanha a rolagem em vez de ficar no fim da página. */
+.carrinho-layout,
+.checkout-layout {
+  display: grid; grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 1.75rem; align-items: start;
+}
+@media (max-width: 900px) {
+  .carrinho-layout, .checkout-layout { grid-template-columns: 1fr; }
+}
+
+.resumo-lateral { position: sticky; top: 88px; display: flex; flex-direction: column; }
+@media (max-width: 900px) { .resumo-lateral { position: static; } }
+.resumo-lateral h2 { font-size: 1.05rem; margin-bottom: 1rem; }
+
+.linha-resumo {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 1rem;
+  font-size: 0.88rem; color: var(--cor-texto-suave); margin-bottom: .45rem;
+}
+.linha-resumo > span:last-child { color: var(--cor-tinta); font-weight: 600; white-space: nowrap; }
+.valor-pendente { font-size: 0.8rem; color: var(--cor-texto-fraco) !important; font-weight: 500 !important; }
+
+.resumo-lateral .resumo-total { margin-bottom: 1.1rem; }
+
+.nota-seguranca {
+  display: flex; align-items: center; gap: .4rem; justify-content: center;
+  font-size: 0.76rem; color: var(--cor-texto-suave); margin: .9rem 0 0; text-align: center;
+}
+.nota-seguranca svg { color: var(--cor-primaria); flex-shrink: 0; }
+
+/* ---------- Lista de itens do carrinho ---------- */
+
+.lista-itens { padding: .35rem 1.4rem; }
+
+.item-carrinho {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto auto auto;
+  align-items: center; gap: 1rem;
+  padding: 1.1rem 0; border-bottom: 1px solid var(--cor-borda);
+}
+.lista-itens .item-carrinho:last-of-type { border-bottom: none; }
+@media (max-width: 620px) {
+  .item-carrinho { grid-template-columns: 56px minmax(0, 1fr) auto; row-gap: .75rem; }
+  .item-carrinho .item-subtotal { grid-column: 2 / 4; text-align: right; }
+}
+
+.item-thumb {
+  width: 64px; height: 64px; border-radius: var(--raio-sm);
+  background: var(--cor-fundo-alt);
+  display: flex; align-items: center; justify-content: center;
+}
+.item-thumb > svg { width: 30px; height: 30px; color: var(--cor-primaria); }
+
+.item-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.item-nome { font-weight: 700; color: var(--cor-tinta); }
+.item-nome:hover { color: var(--cor-primaria); }
+.item-unitario { font-size: 0.82rem; color: var(--cor-texto-suave); }
+.item-subtotal { font-weight: 800; color: var(--cor-tinta); white-space: nowrap; }
+
+.rodape-lista { padding: 1.1rem 0; border-top: 1px solid var(--cor-borda); }
+.link-voltar { display: inline-flex; align-items: center; gap: .45rem; font-size: 0.88rem; font-weight: 600; color: var(--cor-primaria); }
+.link-voltar:hover { color: var(--cor-primaria-escura); }
+
+/* ---------- Etapas do checkout ---------- */
+
+.checkout-passos { display: flex; flex-direction: column; gap: 1.25rem; counter-reset: passo; }
+.passo { counter-increment: passo; }
+
+/* O número da etapa é gerado pelo CSS a partir do contador acima —
+   trocar a ordem das <section> renumera sozinho. */
+.passo-titulo {
+  display: flex; align-items: center; gap: .55rem;
+  font-size: 1.05rem; margin-bottom: 1rem;
+}
+.passo-titulo::before {
+  content: counter(passo);
+  width: 26px; height: 26px; flex-shrink: 0;
+  border-radius: 50%; background: var(--cor-primaria); color: #fff;
+  font-size: 0.8rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+.passo-titulo svg { color: var(--cor-primaria); }
+.passo-ajuda { font-size: 0.84rem; margin: -.5rem 0 1rem; }
+
+/* ---------- Opções selecionáveis (endereço) ---------- */
+
+.lista-opcoes { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1rem; }
+
+.opcao-selecionavel {
+  display: flex; align-items: flex-start; gap: .7rem;
+  border: 1px solid var(--cor-borda); border-radius: var(--raio);
+  padding: .85rem 1rem; cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.opcao-selecionavel:hover { border-color: var(--cor-primaria); }
+.opcao-selecionavel.ativa { border-color: var(--cor-primaria); background: var(--cor-primaria-suave); }
+.opcao-selecionavel input { margin-top: .2rem; accent-color: var(--cor-primaria); flex-shrink: 0; }
+.opcao-conteudo { display: flex; flex-direction: column; gap: 1px; font-size: 0.85rem; color: var(--cor-texto-suave); }
+.opcao-conteudo strong { color: var(--cor-tinta); font-size: 0.92rem; display: flex; align-items: center; gap: .5rem; }
+.marcador-padrao {
+  font-size: 0.63rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+  background: var(--cor-primaria); color: #fff; padding: 1px 7px; border-radius: var(--raio-pill);
+}
+
+/* ---------- Formulários embutidos e linhas de pagamento ---------- */
+
+.form-embutido { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--cor-borda); }
+.linha-campos { display: flex; gap: .75rem; }
+.acoes-form { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+.linha-pagamento {
+  display: grid; grid-template-columns: minmax(0, 2fr) 130px auto auto;
+  gap: .5rem; align-items: center; margin-bottom: .6rem;
+}
+@media (max-width: 620px) { .linha-pagamento { grid-template-columns: 1fr auto auto; } }
+
+.campo-moeda {
+  display: flex; align-items: center; gap: .35rem;
+  border: 1px solid var(--cor-borda); border-radius: var(--raio-sm);
+  padding: 0 .65rem; background: var(--cor-superficie);
+}
+.campo-moeda span { font-size: 0.85rem; color: var(--cor-texto-suave); font-weight: 600; }
+.campo-moeda input {
+  width: 100%; border: none; background: none; padding: .5rem 0;
+  font-family: inherit; font-size: 0.9rem; color: var(--cor-texto);
+}
+.campo-moeda input:focus { outline: none; }
+.campo-moeda:focus-within { border-color: var(--cor-primaria); outline: 2px solid var(--cor-primaria); outline-offset: 1px; }
+
+.linha-cupom { display: flex; gap: .5rem; align-items: stretch; }
+.linha-cupom .campo-com-icone { flex: 1; }
+
+/* ---------- Alocação e confirmação ---------- */
+
+.alocacao { padding-top: .9rem; margin-top: .2rem; border-top: 1px dashed var(--cor-borda); margin-bottom: 1.1rem; }
+.falta-alocar {
+  margin: .5rem 0 0; font-size: 0.82rem; font-weight: 700;
+  color: var(--cor-perigo); background: var(--cor-perigo-bg);
+  padding: .45rem .65rem; border-radius: var(--raio-sm); text-align: center;
+}
+
+.confirmacao-pedido { text-align: center; display: flex; flex-direction: column; align-items: center; }
+.confirmacao-pedido > svg { color: var(--cor-sucesso); margin-bottom: .9rem; }
+.confirmacao-pedido h1 { font-size: 1.8rem; margin-bottom: .3rem; }
+.confirmacao-pedido .ficha-tecnica { width: 100%; margin-top: 1.5rem; text-align: left; }
+.confirmacao-pedido .ficha-tecnica > div { justify-content: space-between; }
+.acoes-confirmacao { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: 1.6rem; }
