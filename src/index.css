@@ -545,10 +545,28 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
 }
 .marca-ampliada { color: var(--cor-tinta); opacity: .9; }
 
+/* Faixa de largura total ("full bleed").
+ *
+ * O <main> aplica o recuo lateral, então qualquer filho nasce já
+ * recuado — uma faixa com fundo próprio ficava com as pontas cortadas,
+ * flutuando no meio da tela. As margens negativas cancelam exatamente o
+ * padding do pai e devolvem a faixa às bordas da janela; o padding de
+ * mesmo valor recompõe o recuo por dentro, para o conteúdo continuar
+ * alinhado com o resto da página.
+ *
+ * Use `.faixa-cheia` em qualquer bloco que precise de fundo de ponta a
+ * ponta (rodapé de seção, banner, tarja de promoção). */
+.faixa-cheia {
+  margin-left: calc(var(--recuo-lateral) * -1);
+  margin-right: calc(var(--recuo-lateral) * -1);
+  padding-left: var(--recuo-lateral);
+  padding-right: var(--recuo-lateral);
+}
+
 .faixa-garantias {
   background: var(--cor-fundo-alt);
   border-top: 1px solid var(--cor-borda); border-bottom: 1px solid var(--cor-borda);
-  padding: 1.4rem var(--recuo-lateral);
+  padding-top: 1.4rem; padding-bottom: 1.4rem;
   margin-bottom: 3.5rem;
 }
 .faixa-garantias ul {

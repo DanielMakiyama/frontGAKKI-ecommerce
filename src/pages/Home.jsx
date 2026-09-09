@@ -53,7 +53,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="faixa-garantias">
+      <section className="faixa-garantias faixa-cheia">
         <div className="container container-medio">
           <ul>
             <li><Truck size={19} strokeWidth={1.7} /> <span><strong>Frete para todo o Brasil</strong>calculado no checkout</span></li>
