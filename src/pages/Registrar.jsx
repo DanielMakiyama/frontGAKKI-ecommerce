@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { MapPin, UserRound } from "lucide-react";
+import { CreditCard, MapPin, UserRound } from "lucide-react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { formatarCep, formatarTelefone } from "../utils/formatos";
+import { BANDEIRAS } from "../utils/constantes";
 
 const DADOS_VAZIOS = { nome: "", email: "", telefone: "", senha: "", confirmacaoSenha: "" };
 const ENDERECO_VAZIO = {
   apelido: "Casa", logradouro: "", numero: "", complemento: "",
   cidade: "", estado: "", cep: "",
+};
+const CARTAO_VAZIO = {
+  apelido: "Meu cartão", ultimosDigitos: "", bandeira: "", nomeTitular: "", validade: "",
 };
 
 /**
@@ -19,6 +23,12 @@ const ENDERECO_VAZIO = {
  * endereço de entrega: se fossem duas requisições, uma falha na segunda
  * deixaria no banco exatamente o que a regra proíbe — um cliente sem
  * endereço. Juntos, os dois nascem na mesma transação.
+ *
+ * O cartão segue no mesmo payload, porém é OPCIONAL: nenhuma regra
+ * obriga o cliente a ter cartão para existir (a RF0027 só exige que seja
+ * possível associar cartões). Quem quiser só olhar o catálogo não
+ * precisa entregar dado de pagamento na porta de entrada — e informa no
+ * checkout, se e quando comprar.
  */
 export default function Registrar() {
   const navigate = useNavigate();
@@ -26,6 +36,8 @@ export default function Registrar() {
 
   const [dados, setDados] = useState(DADOS_VAZIOS);
   const [endereco, setEndereco] = useState(ENDERECO_VAZIO);
+  const [querCartao, setQuerCartao] = useState(false);
+  const [cartao, setCartao] = useState(CARTAO_VAZIO);
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
 
@@ -34,6 +46,9 @@ export default function Registrar() {
 
   const setEnd = (campo, transformar) => (e) =>
     setEndereco((f) => ({ ...f, [campo]: transformar ? transformar(e.target.value) : e.target.value }));
+
+  const setCartaoCampo = (campo, transformar) => (e) =>
+    setCartao((f) => ({ ...f, [campo]: transformar ? transformar(e.target.value) : e.target.value }));
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -48,7 +63,9 @@ export default function Registrar() {
 
     setEnviando(true);
     try {
-      await api.registrar({ ...dados, endereco });
+      // `cartao: undefined` quando a opção está desmarcada — o backend
+      // distingue "não quis cadastrar" de "mandou um cartão vazio".
+      await api.registrar({ ...dados, endereco, cartao: querCartao ? cartao : undefined });
       // Entra direto com a conta recém-criada: a tela de login só
       // oferece os perfis de demonstração.
       const sessao = await api.login(dados.email, dados.senha);
@@ -160,6 +177,74 @@ export default function Registrar() {
           <p className="passo-ajuda">
             Este será seu endereço principal. Você pode cadastrar outros depois, no seu perfil.
           </p>
+        </fieldset>
+
+        <fieldset className="grupo-campos">
+          <legend><CreditCard size={17} strokeWidth={1.9} /> Cartão de crédito</legend>
+
+          <label className="filtro-checkbox">
+            <input
+              type="checkbox"
+              checked={querCartao}
+              onChange={(e) => setQuerCartao(e.target.checked)}
+            />
+            <span>Quero cadastrar um cartão agora (opcional)</span>
+          </label>
+
+          {querCartao && (
+            <div style={{ marginTop: "1rem" }}>
+              <div className="campo">
+                <label htmlFor="cad-cartao-apelido">Apelido do cartão</label>
+                <input
+                  id="cad-cartao-apelido" required maxLength={40} placeholder="ex.: Cartão principal"
+                  value={cartao.apelido} onChange={setCartaoCampo("apelido")}
+                />
+              </div>
+
+              <div className="linha-campos">
+                <div className="campo" style={{ flex: 1 }}>
+                  <label htmlFor="cad-cartao-digitos">Últimos 4 dígitos</label>
+                  <input
+                    id="cad-cartao-digitos" required inputMode="numeric" maxLength={4}
+                    value={cartao.ultimosDigitos}
+                    onChange={setCartaoCampo("ultimosDigitos", (v) => v.replace(/\D/g, ""))}
+                  />
+                </div>
+                <div className="campo" style={{ flex: 1 }}>
+                  <label htmlFor="cad-cartao-bandeira">Bandeira</label>
+                  <select
+                    id="cad-cartao-bandeira" required
+                    value={cartao.bandeira} onChange={setCartaoCampo("bandeira")}
+                  >
+                    <option value="">Selecione…</option>
+                    {BANDEIRAS.map((b) => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                <div className="campo" style={{ flex: 1 }}>
+                  <label htmlFor="cad-cartao-validade">Validade</label>
+                  <input
+                    id="cad-cartao-validade" required placeholder="MM/AAAA"
+                    pattern="(0[1-9]|1[0-2])/20[0-9]{2}" title="Use o formato MM/AAAA"
+                    value={cartao.validade} onChange={setCartaoCampo("validade")}
+                  />
+                </div>
+              </div>
+
+              <div className="campo">
+                <label htmlFor="cad-cartao-titular">Nome impresso no cartão</label>
+                <input
+                  id="cad-cartao-titular" required
+                  value={cartao.nomeTitular}
+                  onChange={setCartaoCampo("nomeTitular", (v) => v.toUpperCase())}
+                />
+              </div>
+
+              <p className="passo-ajuda">
+                Guardamos apenas os quatro últimos dígitos — o número completo e o
+                código de segurança nunca são armazenados.
+              </p>
+            </div>
+          )}
         </fieldset>
 
         <button type="submit" className="btn btn-primario btn-block" disabled={enviando}>

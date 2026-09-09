@@ -1,14 +1,7 @@
 import { useEffect, useState } from "react";
 import { CreditCard, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { api } from "../api/client";
-
-/**
- * Bandeiras aceitas (RN0025: todo cartão deve ser de uma bandeira
- * registrada no sistema). Está como constante porque o backend ainda não
- * expõe esse cadastro; quando expuser, vira `api.listarBandeiras()` e o
- * resto do componente não muda.
- */
-const BANDEIRAS = ["Visa", "Mastercard", "Elo", "American Express", "Hipercard"];
+import { BANDEIRAS } from "../utils/constantes";
 
 const FORM_VAZIO = { apelido: "", ultimosDigitos: "", bandeira: "", nomeTitular: "", validade: "" };
 

@@ -95,6 +95,17 @@ export const apiMock = {
     if (!payload.endereco?.logradouro || !payload.endereco?.cidade || !payload.endereco?.cep) {
       throw new Error("Informe o endereço de entrega completo");
     }
+    // Cartão é OPCIONAL no cadastro — mas se vier, vem completo. Meio
+    // preenchido não entra: viraria um cartão inutilizável no checkout.
+    const cartao = payload.cartao;
+    if (cartao) {
+      if (!cartao.apelido || !cartao.ultimosDigitos || !cartao.bandeira || !cartao.nomeTitular || !cartao.validade) {
+        throw new Error("Preencha todos os dados do cartão ou desmarque a opção");
+      }
+      if (!/^[0-9]{4}$/.test(cartao.ultimosDigitos)) {
+        throw new Error("Informe os quatro últimos dígitos do cartão");
+      }
+    }
 
     const cliente = {
       id: gerarId(), codigo: `CLI-${gerarId()}`, nome: payload.nome, email: payload.email,
@@ -114,6 +125,19 @@ export const apiMock = {
       estado: payload.endereco.estado || "",
       cep: payload.endereco.cep,
     });
+    if (cartao) {
+      db.cartoes.push({
+        id: gerarId(),
+        clienteId: cliente.id,
+        // Primeiro cartão do cliente é sempre o preferencial.
+        preferencial: true,
+        apelido: cartao.apelido,
+        ultimosDigitos: cartao.ultimosDigitos,
+        bandeira: cartao.bandeira,
+        nomeTitular: cartao.nomeTitular,
+        validade: cartao.validade,
+      });
+    }
     return null;
   },
 
