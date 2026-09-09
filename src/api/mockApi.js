@@ -154,6 +154,48 @@ export const apiMock = {
     db.enderecos.push(novo);
     return novo;
   },
+  async atualizarEndereco(id, payload) {
+    await atraso();
+    const cliente = clienteAtual();
+    const endereco = db.enderecos.find((e) => e.id === Number(id) && e.clienteId === cliente.id);
+    if (!endereco) throw new Error("Endereço não encontrado");
+    // Campos nomeados em vez de `...payload`: a tela não sobrescreve
+    // `id`, `clienteId` nem `principal` mandando um campo a mais.
+    Object.assign(endereco, {
+      apelido: payload.apelido,
+      logradouro: payload.logradouro,
+      numero: payload.numero,
+      complemento: payload.complemento,
+      cidade: payload.cidade,
+      estado: payload.estado,
+      cep: payload.cep,
+    });
+    return endereco;
+  },
+  async removerEndereco(id) {
+    await atraso();
+    const cliente = clienteAtual();
+    const meus = db.enderecos.filter((e) => e.clienteId === cliente.id);
+    const endereco = meus.find((e) => e.id === Number(id));
+    if (!endereco) throw new Error("Endereço não encontrado");
+    // RN0022: o cliente precisa manter ao menos um endereço de entrega.
+    if (meus.length === 1) throw new Error("É preciso manter ao menos um endereço de entrega.");
+    db.enderecos = db.enderecos.filter((e) => e.id !== endereco.id);
+    // Nunca ficar sem principal: promove o próximo se o removido era ele.
+    const restantes = db.enderecos.filter((e) => e.clienteId === cliente.id);
+    if (endereco.principal && restantes.length > 0) restantes[0].principal = true;
+    return null;
+  },
+  async definirEnderecoPrincipal(id) {
+    await atraso();
+    const cliente = clienteAtual();
+    const meus = db.enderecos.filter((e) => e.clienteId === cliente.id);
+    const alvo = meus.find((e) => e.id === Number(id));
+    if (!alvo) throw new Error("Endereço não encontrado");
+    // Exclusividade: marcar um desmarca os outros na mesma operação.
+    meus.forEach((e) => { e.principal = e.id === alvo.id; });
+    return alvo;
+  },
   async meusCartoes() {
     await atraso(200);
     const cliente = clienteAtual();

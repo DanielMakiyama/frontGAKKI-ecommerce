@@ -123,10 +123,10 @@ export default function CartoesCliente() {
       ) : cartoes.length === 0 ? (
         <p className="passo-ajuda">Nenhum cartão cadastrado ainda.</p>
       ) : (
-        <ul className="lista-cartoes">
+        <ul className="lista-salvos">
           {cartoes.map((c) => (
-            <li key={c.id} className={`cartao-salvo${c.preferencial ? " preferencial" : ""}`}>
-              <div className="cartao-dados">
+            <li key={c.id} className={`item-salvo${c.preferencial ? " destacado" : ""}`}>
+              <div className="item-salvo-dados">
                 <strong>
                   {c.apelido}
                   {c.preferencial && <span className="marcador-padrao">preferencial</span>}
@@ -135,7 +135,7 @@ export default function CartoesCliente() {
                 <span>{c.nomeTitular} · validade {c.validade}</span>
               </div>
 
-              <div className="cartao-acoes">
+              <div className="item-salvo-acoes">
                 {!c.preferencial && (
                   <button
                     className="btn btn-secundario btn-sm"

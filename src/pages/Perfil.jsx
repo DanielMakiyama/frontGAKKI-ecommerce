@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import EnderecosCliente from "../components/EnderecosCliente";
 import CartoesCliente from "../components/CartoesCliente";
 
 export default function Perfil() {
@@ -67,6 +68,8 @@ export default function Perfil() {
         <div className="campo"><label>Telefone</label><input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
         <button className="btn btn-primario">Salvar alterações</button>
       </form>
+
+      <EnderecosCliente />
 
       <CartoesCliente />
 
