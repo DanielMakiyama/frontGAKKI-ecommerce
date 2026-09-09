@@ -515,15 +515,8 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
 
 /* ---------- Home: hero, categorias e destaques ---------- */
 
-.hero {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
-  gap: 3rem; align-items: center;
-  padding-top: 2rem; padding-bottom: 3.5rem;
-}
-@media (max-width: 860px) {
-  .hero { grid-template-columns: 1fr; gap: 2rem; padding-bottom: 2.5rem; }
-  .hero-visual { display: none; }
-}
+.hero { padding-top: 2.5rem; padding-bottom: 3rem; }
+@media (max-width: 860px) { .hero { padding-bottom: 2.5rem; } }
 
 .hero-etiqueta {
   display: inline-block; margin-bottom: .9rem;
@@ -538,12 +531,6 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
 .hero p { font-size: 1.06rem; max-width: 46ch; margin: 0 0 1.9rem; }
 .hero-acoes { display: flex; gap: .7rem; flex-wrap: wrap; }
 
-.hero-visual {
-  aspect-ratio: 4 / 3;
-  background: var(--cor-fundo-alt); border-radius: var(--raio-lg);
-  display: flex; align-items: center; justify-content: center; overflow: hidden;
-}
-.marca-ampliada { color: var(--cor-tinta); opacity: .9; }
 
 /* Faixa de largura total ("full bleed").
  *
@@ -879,3 +866,41 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
 .confirmacao-pedido .ficha-tecnica { width: 100%; margin-top: 1.5rem; text-align: left; }
 .confirmacao-pedido .ficha-tecnica > div { justify-content: space-between; }
 .acoes-confirmacao { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; margin-top: 1.6rem; }
+
+
+/* ---------- Carrossel de produtos ---------- */
+
+.carrossel-controles { display: flex; align-items: center; gap: 1rem; }
+.carrossel-nav { display: flex; gap: .4rem; }
+
+.btn-carrossel {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid var(--cor-borda); background: var(--cor-superficie);
+  color: var(--cor-tinta);
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s ease, color .15s ease;
+}
+.btn-carrossel:hover:not(:disabled) { border-color: var(--cor-primaria); color: var(--cor-primaria); }
+.btn-carrossel:disabled { color: var(--cor-texto-fraco); border-color: var(--cor-borda); cursor: not-allowed; }
+
+.carrossel-trilho {
+  display: flex; gap: 1.5rem;
+  overflow-x: auto;
+  /* Cada card "engata" na borda esquerda ao terminar a rolagem, então a
+     lista nunca para no meio de um produto. */
+  scroll-snap-type: x mandatory;
+  /* Declarar overflow em um eixo faz o outro virar `auto` — a sombra do
+     hover criaria barra vertical. O padding dá o espaço que ela ocupa. */
+  padding: .5rem .25rem 1.25rem;
+  margin: -.5rem -.25rem 0;
+  /* Barra escondida: a navegação é pelas setas, pelo arraste e pelo
+     teclado. Continua rolável em todos eles. */
+  scrollbar-width: none;
+}
+.carrossel-trilho::-webkit-scrollbar { display: none; }
+.carrossel-trilho:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 4px; border-radius: var(--raio); }
+
+/* `flex: 0 0` trava a largura do card: sem isso o flex encolheria todos
+   para caber no trilho, e não sobraria nada para rolar. */
+.carrossel-trilho > .produto-card { flex: 0 0 258px; scroll-snap-align: start; }
+@media (max-width: 520px) { .carrossel-trilho > .produto-card { flex-basis: 74%; } }

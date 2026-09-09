@@ -4,25 +4,26 @@ import { ArrowRight, Truck, RefreshCw, ShieldCheck } from "lucide-react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import AdminDashboard from "../components/AdminDashboard";
-import LogoGakki from "../components/LogoGakki";
 import IconeInstrumento from "../components/IconeInstrumento";
-import ProdutoCard from "../components/ProdutoCard";
+import CarrosselProdutos from "../components/CarrosselProdutos";
 
-const QTD_DESTAQUES = 4;
+// Mais itens que o grid antigo mostrava: um carrossel com 4 cards não
+// tem para onde rolar, e a seta nasceria desabilitada.
+const QTD_VITRINE = 8;
 
 export default function Home() {
   const { usuario, isAdmin } = useAuth();
 
   const [categorias, setCategorias] = useState([]);
-  const [destaques, setDestaques] = useState([]);
+  const [vitrine, setVitrine] = useState([]);
 
   useEffect(() => {
     // O admin cai no dashboard: nem chega a montar a vitrine.
     if (isAdmin) return;
     api.listarCategorias().then(setCategorias).catch(() => {});
     api
-      .listarInstrumentos({ size: QTD_DESTAQUES })
-      .then((page) => setDestaques(page.content || []))
+      .listarInstrumentos({ size: QTD_VITRINE })
+      .then((page) => setVitrine(page.content || []))
       .catch(() => {});
   }, [isAdmin]);
 
@@ -31,27 +32,23 @@ export default function Home() {
   return (
     <>
       <section className="hero container container-medio">
-        <div className="hero-texto">
-          <span className="hero-etiqueta">Instrumentos e áudio profissional</span>
-          <h1>Do primeiro acorde ao palco.</h1>
-          <p>
-            Cordas, teclas, sopros, percussão e eletrônicos selecionados —
-            para quem está começando e para quem já vive de música.
-          </p>
-          <div className="hero-acoes">
-            <Link to="/catalogo" className="btn btn-primario">
-              Ver catálogo <ArrowRight size={17} strokeWidth={2.2} />
-            </Link>
-            {!usuario && <Link to="/registrar" className="btn btn-secundario">Criar conta</Link>}
-          </div>
-        </div>
-
-        {/* A marca ampliada substitui a roseta do tema antigo: o mesmo
-            símbolo do header, agora como elemento gráfico. */}
-        <div className="hero-visual" aria-hidden="true">
-          <LogoGakki size={340} className="marca-ampliada" />
+        <span className="hero-etiqueta">Instrumentos e áudio profissional</span>
+        <h1>Do primeiro acorde ao palco.</h1>
+        <p>
+          Cordas, teclas, sopros, percussão e eletrônicos selecionados —
+          para quem está começando e para quem já vive de música.
+        </p>
+        <div className="hero-acoes">
+          <Link to="/catalogo" className="btn btn-primario">
+            Ver catálogo <ArrowRight size={17} strokeWidth={2.2} />
+          </Link>
+          {!usuario && <Link to="/registrar" className="btn btn-secundario">Criar conta</Link>}
         </div>
       </section>
+
+      <div className="container container-medio secao-home">
+        <CarrosselProdutos titulo="Em destaque" produtos={vitrine} verTudoPara="/catalogo" />
+      </div>
 
       <section className="faixa-garantias faixa-cheia">
         <div className="container container-medio">
@@ -77,20 +74,6 @@ export default function Home() {
                 <span>{c.nome}</span>
               </Link>
             ))}
-          </div>
-        </section>
-      )}
-
-      {destaques.length > 0 && (
-        <section className="container container-medio secao-home">
-          <header className="cabecalho-secao">
-            <h2>Em destaque</h2>
-            <Link to="/catalogo" className="link-secao">
-              Ver tudo <ArrowRight size={15} strokeWidth={2.2} />
-            </Link>
-          </header>
-          <div className="grade-produtos">
-            {destaques.map((i) => <ProdutoCard key={i.id} produto={i} />)}
           </div>
         </section>
       )}
