@@ -57,45 +57,46 @@ export default function CarrosselProdutos({ titulo, produtos = [], verTudoPara }
     <section className="carrossel" aria-labelledby="titulo-carrossel">
       <header className="cabecalho-secao">
         <h2 id="titulo-carrossel">{titulo}</h2>
-
-        <div className="carrossel-controles">
-          {verTudoPara && (
-            <Link to={verTudoPara} className="link-secao">
-              Ver tudo <ArrowRight size={15} strokeWidth={2.2} />
-            </Link>
-          )}
-          <div className="carrossel-nav">
-            <button
-              type="button" className="btn-carrossel"
-              onClick={() => deslizar(-1)} disabled={!podeVoltar}
-              aria-label="Produtos anteriores"
-            >
-              <ChevronLeft size={18} strokeWidth={2.2} />
-            </button>
-            <button
-              type="button" className="btn-carrossel"
-              onClick={() => deslizar(1)} disabled={!podeAvancar}
-              aria-label="Próximos produtos"
-            >
-              <ChevronRight size={18} strokeWidth={2.2} />
-            </button>
-          </div>
-        </div>
+        {verTudoPara && (
+          <Link to={verTudoPara} className="link-secao">
+            Ver tudo <ArrowRight size={15} strokeWidth={2.2} />
+          </Link>
+        )}
       </header>
 
-      {/* tabIndex={0} torna o trilho focável: com o foco nele, as setas do
-          teclado rolam a lista. Sem isso, quem não usa mouse fica preso. */}
-      <div
-        className="carrossel-trilho"
-        ref={trilhoRef}
-        onScroll={medir}
-        tabIndex={0}
-        role="group"
-        aria-label={`${titulo} — role para o lado para ver mais`}
-      >
-        {produtos.map((p) => (
-          <ProdutoCard key={p.id} produto={p} />
-        ))}
+      {/* As setas moram na moldura, não no cabeçalho: ficam ancoradas nas
+          pontas do trilho, que é onde o conteúdo entra e sai. */}
+      <div className="carrossel-moldura">
+        <button
+          type="button" className="btn-carrossel esquerda"
+          onClick={() => deslizar(-1)} disabled={!podeVoltar}
+          aria-label="Produtos anteriores"
+        >
+          <ChevronLeft size={20} strokeWidth={2.2} />
+        </button>
+
+        {/* tabIndex={0} torna o trilho focável: com o foco nele, as setas do
+            teclado rolam a lista. Sem isso, quem não usa mouse fica preso. */}
+        <div
+          className="carrossel-trilho"
+          ref={trilhoRef}
+          onScroll={medir}
+          tabIndex={0}
+          role="group"
+          aria-label={`${titulo} — role para o lado para ver mais`}
+        >
+          {produtos.map((p) => (
+            <ProdutoCard key={p.id} produto={p} />
+          ))}
+        </div>
+
+        <button
+          type="button" className="btn-carrossel direita"
+          onClick={() => deslizar(1)} disabled={!podeAvancar}
+          aria-label="Próximos produtos"
+        >
+          <ChevronRight size={20} strokeWidth={2.2} />
+        </button>
       </div>
     </section>
   );

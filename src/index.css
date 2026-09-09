@@ -51,6 +51,10 @@
   /* Página de produto: precisa de duas colunas confortáveis, mas não da
      tela inteira — a 1800px a foto e o texto ficariam longe demais. */
   --largura-container-medio: 1180px;
+  /* Vitrines horizontais: uma faixa mais larga que o resto da página,
+     para caber mais um card. A diferença para o container-medio (300px)
+     é exatamente a largura de um card + o vão entre eles. */
+  --largura-container-largo: 1480px;
 
   /* --- Forma --------------------------------------------- */
   --raio-sm: 8px;
@@ -127,6 +131,7 @@ button { font-family: inherit; cursor: pointer; }
 .container { width: 100%; margin: 0 auto; }
 .container-estreito { max-width: var(--largura-container-estreito); }
 .container-medio { max-width: var(--largura-container-medio); }
+.container-largo { max-width: var(--largura-container-largo); }
 @media (max-width: 700px) { :root { --recuo-lateral: 1.25rem; } }
 
 /* ---------- Header ---------- */
@@ -158,12 +163,15 @@ button { font-family: inherit; cursor: pointer; }
 }
 .gakki-logo .simbolo {
   flex-shrink: 0;
+  /* object-fit: a arte não é perfeitamente quadrada; sem isto ela
+     esticaria para caber na caixa width x height. */
+  object-fit: contain;
   transition: transform .25s cubic-bezier(.34, 1.4, .64, 1);
 }
-/* O braço do shamisen gira uns graus no hover, como se o instrumento
-   fosse ajeitado na mão. Origem no corpo da nota, não no centro do SVG. */
-.gakki-logo:hover .simbolo { transform: rotate(-8deg); }
-.gakki-logo .simbolo { transform-origin: 33% 73%; }
+/* Balancinho no hover. A origem estava calibrada para o corpo da nota
+   do SVG antigo; com a arte nova, o ponto de giro é o centro. */
+.gakki-logo:hover .simbolo { transform: rotate(-7deg) scale(1.05); }
+.gakki-logo .simbolo { transform-origin: 50% 55%; }
 @media (prefers-reduced-motion: reduce) {
   .gakki-logo .simbolo { transition: none; }
   .gakki-logo:hover .simbolo { transform: none; }
@@ -515,8 +523,14 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
 
 /* ---------- Home: hero, categorias e destaques ---------- */
 
-.hero { padding-top: 2.5rem; padding-bottom: 3rem; }
-@media (max-width: 860px) { .hero { padding-bottom: 2.5rem; } }
+.hero {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  gap: 3rem; align-items: center;
+  padding-top: 2rem; padding-bottom: 3.5rem;
+}
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; gap: 2rem; padding-bottom: 2.5rem; }
+}
 
 .hero-etiqueta {
   display: inline-block; margin-bottom: .9rem;
@@ -870,18 +884,33 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
 
 /* ---------- Carrossel de produtos ---------- */
 
-.carrossel-controles { display: flex; align-items: center; gap: 1rem; }
-.carrossel-nav { display: flex; gap: .4rem; }
+/* Moldura relativa: é a referência de posicionamento das setas, que
+   ficam ancoradas nas pontas do trilho. */
+.carrossel-moldura { position: relative; }
 
 .btn-carrossel {
-  width: 38px; height: 38px; border-radius: 50%;
+  position: absolute; top: 42%; transform: translateY(-50%); z-index: 3;
+  width: 42px; height: 42px; border-radius: 50%;
   border: 1px solid var(--cor-borda); background: var(--cor-superficie);
   color: var(--cor-tinta);
   display: flex; align-items: center; justify-content: center;
-  transition: border-color .15s ease, color .15s ease;
+  box-shadow: var(--sombra-forte);
+  transition: border-color .15s ease, color .15s ease, opacity .15s ease;
 }
+/* Ficam meio corpo para fora do trilho: não tampam o card da ponta e
+   deixam claro que o conteúdo continua além da borda. */
+.btn-carrossel.esquerda { left: -21px; }
+.btn-carrossel.direita { right: -21px; }
 .btn-carrossel:hover:not(:disabled) { border-color: var(--cor-primaria); color: var(--cor-primaria); }
-.btn-carrossel:disabled { color: var(--cor-texto-fraco); border-color: var(--cor-borda); cursor: not-allowed; }
+/* Na ponta da lista a seta some em vez de ficar cinza: sem conteúdo
+   além dali, um botão morto só ocupa espaço sobre o card. */
+.btn-carrossel:disabled { opacity: 0; pointer-events: none; }
+
+/* Sem folga lateral para as setas saírem: elas voltam para dentro. */
+@media (max-width: 1560px) {
+  .btn-carrossel.esquerda { left: .5rem; }
+  .btn-carrossel.direita { right: .5rem; }
+}
 
 .carrossel-trilho {
   display: flex; gap: 1.5rem;
@@ -904,3 +933,64 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
    para caber no trilho, e não sobraria nada para rolar. */
 .carrossel-trilho > .produto-card { flex: 0 0 258px; scroll-snap-align: start; }
 @media (max-width: 520px) { .carrossel-trilho > .produto-card { flex-basis: 74%; } }
+
+
+/* ---------- Painel de destaque do hero (um produto por vez) ---------- */
+
+.hero-visual {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--cor-fundo-alt); border-radius: var(--raio-lg);
+  overflow: hidden;
+}
+
+.destaque-conteudo {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1.2rem; padding: 2rem 3.5rem 3rem;
+  text-align: center;
+  animation: entrada-destaque .28s ease-out;
+}
+.destaque-conteudo > svg { width: 120px; height: 120px; color: var(--cor-primaria); flex-shrink: 0; }
+.destaque-info { display: flex; flex-direction: column; gap: .15rem; }
+.destaque-categoria {
+  font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--cor-primaria);
+}
+.destaque-info strong { color: var(--cor-tinta); font-size: 1.02rem; font-weight: 700; }
+.destaque-preco { font-size: 1.15rem; font-weight: 800; color: var(--cor-tinta); letter-spacing: -0.02em; }
+.destaque-conteudo:hover .destaque-info strong { color: var(--cor-primaria); }
+
+@keyframes entrada-destaque {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .destaque-conteudo { animation: none; }
+}
+
+/* As setas ficam acima do link que cobre o painel inteiro. */
+.seta-destaque {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 2;
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid var(--cor-borda); background: var(--cor-superficie);
+  color: var(--cor-tinta);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--sombra);
+  transition: border-color .15s ease, color .15s ease;
+}
+.seta-destaque:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); }
+.seta-destaque.esquerda { left: .75rem; }
+.seta-destaque.direita { right: .75rem; }
+
+.destaque-pontos {
+  position: absolute; bottom: .9rem; left: 0; right: 0; z-index: 2;
+  display: flex; justify-content: center; gap: .35rem;
+}
+.ponto {
+  width: 7px; height: 7px; padding: 0; border-radius: 50%;
+  border: none; background: var(--cor-texto-fraco);
+  transition: background .15s ease, width .15s ease;
+}
+.ponto:hover { background: var(--cor-texto-suave); }
+.ponto.ativo { background: var(--cor-primaria); width: 18px; border-radius: var(--raio-pill); }

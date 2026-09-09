@@ -5,10 +5,11 @@ import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import AdminDashboard from "../components/AdminDashboard";
 import IconeInstrumento from "../components/IconeInstrumento";
+import DestaqueHero from "../components/DestaqueHero";
 import CarrosselProdutos from "../components/CarrosselProdutos";
 
-// Mais itens que o grid antigo mostrava: um carrossel com 4 cards não
-// tem para onde rolar, e a seta nasceria desabilitada.
+// A mesma lista alimenta o painel do hero e o carrossel do rodapé: uma
+// requisição só, dois usos.
 const QTD_VITRINE = 8;
 
 export default function Home() {
@@ -32,23 +33,23 @@ export default function Home() {
   return (
     <>
       <section className="hero container container-medio">
-        <span className="hero-etiqueta">Instrumentos e áudio profissional</span>
-        <h1>Do primeiro acorde ao palco.</h1>
-        <p>
-          Cordas, teclas, sopros, percussão e eletrônicos selecionados —
-          para quem está começando e para quem já vive de música.
-        </p>
-        <div className="hero-acoes">
-          <Link to="/catalogo" className="btn btn-primario">
-            Ver catálogo <ArrowRight size={17} strokeWidth={2.2} />
-          </Link>
-          {!usuario && <Link to="/registrar" className="btn btn-secundario">Criar conta</Link>}
+        <div className="hero-texto">
+          <span className="hero-etiqueta">Instrumentos e áudio profissional</span>
+          <h1>Do primeiro acorde ao palco.</h1>
+          <p>
+            Cordas, teclas, sopros, percussão e eletrônicos selecionados —
+            para quem está começando e para quem já vive de música.
+          </p>
+          <div className="hero-acoes">
+            <Link to="/catalogo" className="btn btn-primario">
+              Ver catálogo <ArrowRight size={17} strokeWidth={2.2} />
+            </Link>
+            {!usuario && <Link to="/registrar" className="btn btn-secundario">Criar conta</Link>}
+          </div>
         </div>
-      </section>
 
-      <div className="container container-medio secao-home">
-        <CarrosselProdutos titulo="Em destaque" produtos={vitrine} verTudoPara="/catalogo" />
-      </div>
+        <DestaqueHero produtos={vitrine} />
+      </section>
 
       <section className="faixa-garantias faixa-cheia">
         <div className="container container-medio">
@@ -77,6 +78,10 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      <div className="container container-largo secao-home">
+        <CarrosselProdutos titulo="Em destaque" produtos={vitrine} verTudoPara="/catalogo" />
+      </div>
     </>
   );
 }
