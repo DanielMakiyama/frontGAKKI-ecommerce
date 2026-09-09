@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
 import { MapPin, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { api } from "../api/client";
+import { formatarCep } from "../utils/formatos";
 
 const FORM_VAZIO = {
   apelido: "", logradouro: "", numero: "", complemento: "",
   cidade: "", estado: "", cep: "",
 };
-
-/** Aplica a máscara 00000-000 conforme se digita, ignorando não-dígitos. */
-function formatarCep(valor) {
-  const digitos = valor.replace(/\D/g, "").slice(0, 8);
-  return digitos.length > 5 ? `${digitos.slice(0, 5)}-${digitos.slice(5)}` : digitos;
-}
 
 /**
  * EnderecosCliente — lista, cadastra, altera, remove e define o endereço

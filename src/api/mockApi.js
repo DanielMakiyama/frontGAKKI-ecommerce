@@ -89,9 +89,30 @@ export const apiMock = {
     await atraso();
     if (payload.senha !== payload.confirmacaoSenha) throw new Error("Confirmação de senha não confere");
     if (db.clientes.some((c) => c.email === payload.email)) throw new Error("E-mail já cadastrado");
-    db.clientes.push({
+    // RN0022: o cliente não pode existir sem endereço de entrega, então
+    // as duas validações acontecem ANTES de gravar qualquer coisa. Se o
+    // endereço vier incompleto, nenhum cliente é criado.
+    if (!payload.endereco?.logradouro || !payload.endereco?.cidade || !payload.endereco?.cep) {
+      throw new Error("Informe o endereço de entrega completo");
+    }
+
+    const cliente = {
       id: gerarId(), codigo: `CLI-${gerarId()}`, nome: payload.nome, email: payload.email,
       telefone: payload.telefone || "", perfil: "CLIENTE", ativo: true,
+    };
+    db.clientes.push(cliente);
+    db.enderecos.push({
+      id: gerarId(),
+      clienteId: cliente.id,
+      // Primeiro endereço do cliente é sempre o principal.
+      principal: true,
+      apelido: payload.endereco.apelido || "Principal",
+      logradouro: payload.endereco.logradouro,
+      numero: payload.endereco.numero || "",
+      complemento: payload.endereco.complemento || "",
+      cidade: payload.endereco.cidade,
+      estado: payload.endereco.estado || "",
+      cep: payload.endereco.cep,
     });
     return null;
   },

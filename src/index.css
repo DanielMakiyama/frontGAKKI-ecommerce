@@ -1056,3 +1056,19 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
 
 .rodape-login { margin-top: 1.4rem; font-size: 0.88rem; text-align: center; }
 .rodape-login a { color: var(--cor-primaria); font-weight: 700; text-decoration: underline; }
+
+
+/* ---------- Agrupamento de campos em formulários longos ---------- */
+
+/* <fieldset> é o elemento certo para agrupar campos relacionados: o
+   leitor de tela anuncia a <legend> ao entrar em cada campo do grupo.
+   Só precisa da borda e do padding padrão do navegador zerados. */
+.grupo-campos { border: none; padding: 0; margin: 0 0 1.4rem; }
+.grupo-campos legend {
+  padding: 0; margin-bottom: .9rem;
+  display: flex; align-items: center; gap: .5rem;
+  font-size: 0.98rem; font-weight: 700; color: var(--cor-tinta);
+}
+.grupo-campos legend svg { color: var(--cor-primaria); }
+.grupo-campos + .grupo-campos { padding-top: 1.4rem; border-top: 1px solid var(--cor-borda); }
+.grupo-campos .passo-ajuda { margin: -.3rem 0 0; }
