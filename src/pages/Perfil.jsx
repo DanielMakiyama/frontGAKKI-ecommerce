@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import CartoesCliente from "../components/CartoesCliente";
 
 export default function Perfil() {
   const { logout } = useAuth();
@@ -54,7 +55,7 @@ export default function Perfil() {
   }
 
   return (
-    <div className="container" style={{ maxWidth: 480 }}>
+    <div className="container container-estreito">
       <div className="pagina-titulo"><h1 className="titulo-com-icone"><User size={26} strokeWidth={1.6} /> Meu perfil</h1></div>
 
       <form className="card card-pad" onSubmit={salvarCadastro} style={{ marginBottom: "1.5rem" }}>
@@ -66,6 +67,8 @@ export default function Perfil() {
         <div className="campo"><label>Telefone</label><input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></div>
         <button className="btn btn-primario">Salvar alterações</button>
       </form>
+
+      <CartoesCliente />
 
       <form className="card card-pad" onSubmit={salvarSenha} style={{ marginBottom: "1.5rem" }}>
         <h3>Alterar senha</h3>

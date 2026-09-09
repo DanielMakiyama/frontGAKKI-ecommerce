@@ -166,6 +166,44 @@ export const apiMock = {
     db.cartoes.push(novo);
     return novo;
   },
+  async atualizarCartao(id, payload) {
+    await atraso();
+    const cliente = clienteAtual();
+    const cartao = db.cartoes.find((c) => c.id === Number(id) && c.clienteId === cliente.id);
+    if (!cartao) throw new Error("Cartão não encontrado");
+    // Object.assign com campos nomeados, e não `...payload`: impede que a
+    // tela sobrescreva `id`, `clienteId` ou `preferencial` por acidente.
+    Object.assign(cartao, {
+      apelido: payload.apelido,
+      ultimosDigitos: payload.ultimosDigitos,
+      bandeira: payload.bandeira,
+      nomeTitular: payload.nomeTitular,
+      validade: payload.validade,
+    });
+    return cartao;
+  },
+  async removerCartao(id) {
+    await atraso();
+    const cliente = clienteAtual();
+    const cartao = db.cartoes.find((c) => c.id === Number(id) && c.clienteId === cliente.id);
+    if (!cartao) throw new Error("Cartão não encontrado");
+    db.cartoes = db.cartoes.filter((c) => c.id !== cartao.id);
+    // RF0027 exige um preferencial. Se o removido era ele, promove o
+    // próximo da lista em vez de deixar o cliente sem nenhum marcado.
+    const restantes = db.cartoes.filter((c) => c.clienteId === cliente.id);
+    if (cartao.preferencial && restantes.length > 0) restantes[0].preferencial = true;
+    return null;
+  },
+  async definirCartaoPreferencial(id) {
+    await atraso();
+    const cliente = clienteAtual();
+    const meus = db.cartoes.filter((c) => c.clienteId === cliente.id);
+    const alvo = meus.find((c) => c.id === Number(id));
+    if (!alvo) throw new Error("Cartão não encontrado");
+    // Exclusividade: marcar um desmarca os outros na mesma operação.
+    meus.forEach((c) => { c.preferencial = c.id === alvo.id; });
+    return alvo;
+  },
   async meusCupons() {
     await atraso(200);
     const cliente = clienteAtual();

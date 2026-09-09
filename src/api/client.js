@@ -67,6 +67,9 @@ const apiReal = {
   adicionarEndereco: (payload) => request("/clientes/me/enderecos", { method: "POST", body: payload, auth: true }),
   meusCartoes: () => request("/clientes/me/cartoes", { auth: true }),
   adicionarCartao: (payload) => request("/clientes/me/cartoes", { method: "POST", body: payload, auth: true }),
+  atualizarCartao: (id, payload) => request(`/clientes/me/cartoes/${id}`, { method: "PUT", body: payload, auth: true }),
+  removerCartao: (id) => request(`/clientes/me/cartoes/${id}`, { method: "DELETE", auth: true }),
+  definirCartaoPreferencial: (id) => request(`/clientes/me/cartoes/${id}/preferencial`, { method: "PATCH", auth: true }),
   meusCupons: () => request("/clientes/me/cupons", { auth: true }),
 
   // Carrinho
