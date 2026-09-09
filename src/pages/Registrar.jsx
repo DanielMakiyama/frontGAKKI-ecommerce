@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 
 export default function Registrar() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [form, setForm] = useState({ nome: "", email: "", senha: "", confirmacaoSenha: "", telefone: "" });
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -18,7 +20,12 @@ export default function Registrar() {
     setEnviando(true);
     try {
       await api.registrar(form);
-      navigate("/login");
+      // Entra direto com a conta recém-criada. A tela de login agora só
+      // oferece os perfis de demonstração, então mandar o novo cadastro
+      // para lá deixaria a pessoa sem porta de entrada.
+      const sessao = await api.login(form.email, form.senha);
+      login(sessao.nome, sessao.perfil, sessao.token);
+      navigate("/catalogo");
     } catch (e) {
       setErro(e.message);
     } finally {
@@ -27,7 +34,7 @@ export default function Registrar() {
   }
 
   return (
-    <div className="container" style={{ maxWidth: 460 }}>
+    <div className="container container-estreito">
       <div className="pagina-titulo">
         <h1>Criar conta</h1>
         <p>Cadastre-se para comprar na GAKKI STORE.</p>
@@ -57,6 +64,9 @@ export default function Registrar() {
         <button type="submit" className="btn btn-primario btn-block" disabled={enviando}>
           {enviando ? "Criando…" : "Criar conta"}
         </button>
+        <p className="rodape-login">
+          Só quer dar uma olhada? <Link to="/login">Usar um perfil de demonstração</Link>
+        </p>
       </form>
     </div>
   );
