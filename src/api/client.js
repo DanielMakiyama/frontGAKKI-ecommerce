@@ -1,21 +1,72 @@
 import { apiMock } from "./mockApi.js";
 
 /**
- * MODO_MOCK: enquanto true, o app inteiro roda com dados fictícios em
- * memória (mockApi.js), sem precisar do backend Java rodando — é o modo
- * usado nesta fase do projeto, focada só no protótipo de frontend.
+ * Integração progressiva com o backend.
  *
- * Quando o backend voltar a ser usado (retomando pedaço por pedaço),
- * troque esta única linha para `false` — nenhuma página precisa mudar,
- * porque `apiReal` já implementa exatamente as mesmas funções.
+ * O `MODO_MOCK` booleano que existia aqui não servia mais: ele liga ou
+ * desliga o mock do app INTEIRO, e hoje só o módulo de cliente tem
+ * backend real. Virá-lo derrubaria catálogo, carrinho, pedidos e trocas.
+ *
+ * `PRONTOS` lista os métodos já implementados em Java. O objeto `api`
+ * final é o mock com esses métodos substituídos pelos reais — nenhuma
+ * tela sabe da diferença, porque todas continuam chamando
+ * `api.algumaCoisa()`.
+ *
+ * Cada camada nova de backend acrescenta nomes a esta lista. Quando ela
+ * cobrir todos os métodos do `apiReal`, este arquivo volta a ser só o
+ * `apiReal` e os dois arquivos de mock podem ser apagados.
  */
-const MODO_MOCK = true;
+const PRONTOS = [
+  // Autenticação
+  "login",
+  "registrar",
+  // Cadastro do cliente (RF0021, RF0022, RF0024, RF0028)
+  "meuPerfil",
+  "alterarCadastro",
+  "alterarSenha",
+  "inativarPropriaConta",
+  // Endereços (RF0026)
+  "meusEnderecos",
+  "adicionarEndereco",
+  "atualizarEndereco",
+  "removerEndereco",
+  "definirEnderecoPrincipal",
+  // Cartões (RF0027)
+  "meusCartoes",
+  "adicionarCartao",
+  "atualizarCartao",
+  "removerCartao",
+  "definirCartaoPreferencial",
+  // Domínio (RN0025)
+  "listarBandeiras",
+  // Administração de clientes (RF0023, RF0024)
+  "listarClientes",
+  "inativarCliente",
+  "ativarCliente",
+];
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+// O padrão já aponta para o backend com o prefixo de versão, para o
+// projeto rodar recém-clonado sem ninguém precisar criar um .env.
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080/api/v1";
 
 function authHeaders() {
   const token = localStorage.getItem("gakki_token");
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/**
+ * Extrai a mensagem de um erro no formato ProblemDetail (RFC 7807).
+ *
+ * Quando a falha é de validação de campo, o `detail` é genérico ("A
+ * requisição contém campos inválidos") e o que interessa está em
+ * `errors`. Juntar as mensagens de campo faz a tela mostrar "CPF
+ * inválido" em vez da frase genérica.
+ */
+function mensagemDeErro(dados, status) {
+  if (dados?.errors?.length) {
+    return dados.errors.map((e) => e.mensagem).join(" ");
+  }
+  return dados?.detail || dados?.title || `Erro ${status}`;
 }
 
 async function request(path, { method = "GET", body, auth = false } = {}) {
@@ -31,8 +82,7 @@ async function request(path, { method = "GET", body, auth = false } = {}) {
   if (!res.ok) {
     let mensagem = `Erro ${res.status}`;
     try {
-      const data = await res.json();
-      mensagem = data.mensagem || data.erro || mensagem;
+      mensagem = mensagemDeErro(await res.json(), res.status);
     } catch {
       /* corpo vazio ou não-JSON */
     }
@@ -41,13 +91,14 @@ async function request(path, { method = "GET", body, auth = false } = {}) {
 
   if (res.status === 204) return null;
   const contentType = res.headers.get("content-type") || "";
-  return contentType.includes("application/json") ? res.json() : res.text();
+  return contentType.includes("json") ? res.json() : res.text();
 }
 
 const apiReal = {
   // Autenticação
   login: (email, senha) => request("/auth/login", { method: "POST", body: { email, senha } }),
   registrar: (payload) => request("/auth/registrar", { method: "POST", body: payload }),
+  renovarSessao: (refreshToken) => request("/auth/refresh", { method: "POST", body: { refreshToken } }),
 
   // Catálogo (público)
   listarInstrumentos: (params = {}) => {
@@ -57,6 +108,9 @@ const apiReal = {
   buscarInstrumento: (id) => request(`/instrumentos/${id}`),
   listarCategorias: () => request("/categorias"),
   listarFabricantes: () => request("/fabricantes"),
+
+  // Domínio
+  listarBandeiras: () => request("/bandeiras"),
 
   // Cliente autenticado
   meuPerfil: () => request("/clientes/me", { auth: true }),
@@ -103,7 +157,7 @@ const apiReal = {
   inativarCliente: (id) => request(`/clientes/${id}/inativar`, { method: "PATCH", auth: true }),
   ativarCliente: (id) => request(`/clientes/${id}/ativar`, { method: "PATCH", auth: true }),
 
-  // Admin — pedidos (novo fluxo)
+  // Admin — pedidos
   listarPedidosAdmin: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
     return request(`/pedidos?${qs}`, { auth: true });
@@ -113,7 +167,7 @@ const apiReal = {
   despacharPedido: (id) => request(`/pedidos/${id}/despachar`, { method: "POST", auth: true }),
   confirmarEntregaAdmin: (id) => request(`/pedidos/${id}/confirmar-entrega`, { method: "POST", auth: true }),
 
-  // Admin — trocas (novo fluxo)
+  // Admin — trocas
   listarTrocasAdmin: (status) => request(`/trocas${status ? `?status=${status}` : ""}`, { auth: true }),
   aceitarTroca: (id) => request(`/trocas/${id}/aceitar`, { method: "POST", auth: true }),
   negarTroca: (id, motivo) => request(`/trocas/${id}/negar`, { method: "POST", body: { motivo }, auth: true }),
@@ -135,4 +189,15 @@ const apiReal = {
   chat: (mensagem) => request("/recomendacoes/chat", { method: "POST", body: mensagem, auth: true }),
 };
 
-export const api = MODO_MOCK ? apiMock : apiReal;
+// Falha cedo se um nome da lista não existir no apiReal: um erro de
+// digitação aqui deixaria a tela chamando o mock silenciosamente, e o
+// bug apareceria só na apresentação.
+const ausentes = PRONTOS.filter((m) => typeof apiReal[m] !== "function");
+if (ausentes.length > 0) {
+  throw new Error(`PRONTOS lista métodos inexistentes em apiReal: ${ausentes.join(", ")}`);
+}
+
+export const api = {
+  ...apiMock,
+  ...Object.fromEntries(PRONTOS.map((m) => [m, apiReal[m]])),
+};

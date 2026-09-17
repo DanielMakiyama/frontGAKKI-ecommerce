@@ -11,17 +11,18 @@ import { useAuth } from "../context/AuthContext";
  * apresentação, digitar credencial só gera erro de digitação e tempo
  * perdido. Aqui o acesso é um clique por perfil.
  *
- * A tela continua usando `api.login(email)` — o mesmo caminho de antes.
- * Nada de "modo demo" espalhado pelo app: só a forma de INFORMAR o
- * e-mail mudou. Para voltar ao login digitado, basta trocar esta tela;
- * AuthContext, rotas protegidas e o restante seguem intactos.
+ * A senha viaja junto porque o backend real a verifica (BCrypt, RNF0033)
+ * — o mock aceitava qualquer coisa. Para quem assiste, nada muda: segue
+ * um clique. Credencial em código só é aceitável porque estas são contas
+ * de demonstração do seed (V999), sem dado real de ninguém.
  *
- * Os e-mails abaixo existem no seed do mockDb.js.
+ * Os e-mails existem no `V999__seed_dev.sql`.
  */
 const CONTAS_DEMO = [
   {
     id: "cliente",
     email: "cliente@gakkistore.com",
+    senha: "Cliente@2026",
     rotulo: "Entrar como cliente",
     descricao: "Navega no catálogo, compra, acompanha pedidos e trocas.",
     Icone: User,
@@ -30,6 +31,7 @@ const CONTAS_DEMO = [
   {
     id: "admin",
     email: "admin@gakkistore.com",
+    senha: "Admin@2026",
     rotulo: "Entrar como administrador",
     descricao: "Painel de vendas, estoque, trocas e cadastro de produtos.",
     Icone: LayoutDashboard,
@@ -51,7 +53,7 @@ export default function Login() {
     setErro("");
     setEntrando(conta.id);
     try {
-      const resp = await api.login(conta.email);
+      const resp = await api.login(conta.email, conta.senha);
       login(resp.nome, resp.perfil, resp.token);
       // `state.from` tem prioridade: quem foi barrado tentando abrir uma
       // página específica volta para ela, não para o destino padrão.
@@ -69,13 +71,17 @@ export default function Login() {
         <p>Escolha um perfil para acessar a GAKKI STORE.</p>
       </div>
 
-      {erro && <div className="erro-form">{erro}</div>}
+      {erro && <div className="erro-form" role="alert">{erro}</div>}
 
       <div className="grade-perfis">
         {CONTAS_DEMO.map((conta) => (
           <button
             key={conta.id}
             type="button"
+            // Seletor estável para os testes automatizados: não depende
+            // do texto do botão, que muda para "Entrando…" durante a
+            // requisição e quebraria a busca por texto.
+            data-perfil={conta.id}
             className="card cartao-perfil"
             onClick={() => acessar(conta)}
             disabled={entrando !== null}
