@@ -1,21 +1,37 @@
 import { useEffect, useState } from "react";
 import { CreditCard, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { api } from "../api/client";
-import { BANDEIRAS } from "../utils/constantes";
+import { somenteDigitos } from "../utils/formatos";
 
-const FORM_VAZIO = { apelido: "", ultimosDigitos: "", bandeira: "", nomeTitular: "", validade: "" };
+const FORM_VAZIO = {
+  apelido: "",
+  ultimosDigitos: "",
+  bandeiraId: "",
+  nomeTitular: "",
+  validadeMes: "",
+  validadeAno: "",
+};
+
+const ANO_ATUAL = new Date().getFullYear();
+const ANOS_VALIDADE = Array.from({ length: 16 }, (_, i) => ANO_ATUAL + i);
+const MESES = Array.from({ length: 12 }, (_, i) => i + 1);
 
 /**
  * CartoesCliente — lista, cadastra, altera, remove e define o cartão
  * preferencial (RF0027).
  *
- * Um detalhe importante do modelo: guardamos apenas os QUATRO ÚLTIMOS
- * dígitos, nunca o número completo nem o código de segurança. Número
- * cheio e CVV são dados que exigem certificação PCI-DSS para armazenar —
- * num fluxo real eles vão direto para o gateway, que devolve um token.
+ * Guardamos apenas os QUATRO ÚLTIMOS dígitos, nunca o número completo
+ * nem o código de segurança. Número cheio e CVV exigem certificação
+ * PCI-DSS para armazenar — num fluxo real vão direto ao gateway, que
+ * devolve um token.
+ *
+ * A bandeira é escolhida da lista do sistema (RN0025) e enviada como id,
+ * não como texto: assim o banco recusa uma bandeira que não exista, em
+ * vez de aceitar "VIZA" como se fosse uma bandeira nova.
  */
 export default function CartoesCliente() {
   const [cartoes, setCartoes] = useState([]);
+  const [bandeiras, setBandeiras] = useState([]);
   const [carregando, setCarregando] = useState(true);
 
   // `editando` guarda o id em edição, ou "novo" para o formulário de
@@ -38,7 +54,11 @@ export default function CartoesCliente() {
     }
   }
 
-  useEffect(() => { recarregar(); }, []);
+  useEffect(() => {
+    recarregar();
+    // RN0025 — a lista vem do cadastro do sistema, não de uma constante.
+    api.listarBandeiras().then(setBandeiras).catch(() => setBandeiras([]));
+  }, []);
 
   function abrirNovo() {
     setForm(FORM_VAZIO);
@@ -50,9 +70,12 @@ export default function CartoesCliente() {
     setForm({
       apelido: cartao.apelido || "",
       ultimosDigitos: cartao.ultimosDigitos || "",
-      bandeira: cartao.bandeira || "",
+      // A resposta traz o NOME da bandeira, porque é o que a tela exibe.
+      // Para editar é preciso o id de volta — daí o cruzamento com a lista.
+      bandeiraId: bandeiras.find((b) => b.nome === cartao.bandeira)?.id ?? "",
       nomeTitular: cartao.nomeTitular || "",
-      validade: cartao.validade || "",
+      validadeMes: cartao.validadeMes ?? "",
+      validadeAno: cartao.validadeAno ?? "",
     });
     setEditando(cartao.id);
     setErro(""); setMensagem("");
@@ -63,15 +86,28 @@ export default function CartoesCliente() {
     setForm(FORM_VAZIO);
   }
 
+  function setCampo(campo, valor) {
+    setForm((f) => ({ ...f, [campo]: valor }));
+  }
+
   async function salvar(e) {
     e.preventDefault();
     setErro(""); setMensagem(""); setSalvando(true);
+
+    // Os selects devolvem string; o backend espera número.
+    const payload = {
+      ...form,
+      bandeiraId: Number(form.bandeiraId),
+      validadeMes: Number(form.validadeMes),
+      validadeAno: Number(form.validadeAno),
+    };
+
     try {
       if (editando === "novo") {
-        await api.adicionarCartao(form);
+        await api.adicionarCartao(payload);
         setMensagem("Cartão cadastrado.");
       } else {
-        await api.atualizarCartao(editando, form);
+        await api.atualizarCartao(editando, payload);
         setMensagem("Cartão atualizado.");
       }
       await recarregar();
@@ -105,10 +141,10 @@ export default function CartoesCliente() {
   }
 
   return (
-    <section className="card card-pad" style={{ marginBottom: "1.5rem" }}>
+    <section className="card card-pad" style={{ marginBottom: "1.5rem" }} data-testid="secao-cartoes">
       <h3 className="titulo-com-icone"><CreditCard size={19} strokeWidth={1.9} /> Cartões de crédito</h3>
 
-      {erro && <div className="erro-form">{erro}</div>}
+      {erro && <div className="erro-form" role="alert" data-testid="erro-cartao">{erro}</div>}
       {mensagem && <p className="aviso-sucesso" role="status">{mensagem}</p>}
 
       {carregando ? (
@@ -118,14 +154,16 @@ export default function CartoesCliente() {
       ) : (
         <ul className="lista-salvos">
           {cartoes.map((c) => (
-            <li key={c.id} className={`item-salvo${c.preferencial ? " destacado" : ""}`}>
+            <li key={c.id} className={`item-salvo${c.preferencial ? " destacado" : ""}`} data-cartao={c.id}>
               <div className="item-salvo-dados">
                 <strong>
                   {c.apelido}
                   {c.preferencial && <span className="marcador-padrao">preferencial</span>}
                 </strong>
                 <span>{c.bandeira} •••• {c.ultimosDigitos}</span>
-                <span>{c.nomeTitular} · validade {c.validade}</span>
+                <span>
+                  {c.nomeTitular} · validade {String(c.validadeMes).padStart(2, "0")}/{c.validadeAno}
+                </span>
               </div>
 
               <div className="item-salvo-acoes">
@@ -155,7 +193,7 @@ export default function CartoesCliente() {
       )}
 
       {editando === null ? (
-        <button className="btn btn-secundario btn-sm" onClick={abrirNovo}>
+        <button className="btn btn-secundario btn-sm" onClick={abrirNovo} data-testid="btn-novo-cartao">
           <Plus size={15} strokeWidth={2.2} /> Novo cartão
         </button>
       ) : (
@@ -168,7 +206,7 @@ export default function CartoesCliente() {
               id="cartao-apelido" required maxLength={40}
               placeholder="ex.: Cartão principal"
               value={form.apelido}
-              onChange={(e) => setForm({ ...form, apelido: e.target.value })}
+              onChange={(e) => setCampo("apelido", e.target.value)}
             />
           </div>
 
@@ -180,7 +218,7 @@ export default function CartoesCliente() {
                 value={form.ultimosDigitos}
                 // Só dígitos: barra letras e símbolos já na digitação, em
                 // vez de reclamar depois que o cliente clicou em salvar.
-                onChange={(e) => setForm({ ...form, ultimosDigitos: e.target.value.replace(/\D/g, "") })}
+                onChange={(e) => setCampo("ultimosDigitos", somenteDigitos(e.target.value))}
               />
             </div>
 
@@ -188,32 +226,46 @@ export default function CartoesCliente() {
               <label htmlFor="cartao-bandeira">Bandeira</label>
               <select
                 id="cartao-bandeira" required
-                value={form.bandeira}
-                onChange={(e) => setForm({ ...form, bandeira: e.target.value })}
+                value={form.bandeiraId}
+                onChange={(e) => setCampo("bandeiraId", e.target.value)}
               >
                 <option value="">Selecione…</option>
-                {BANDEIRAS.map((b) => <option key={b} value={b}>{b}</option>)}
+                {bandeiras.map((b) => <option key={b.id} value={b.id}>{b.nome}</option>)}
               </select>
             </div>
+          </div>
 
+          <div className="linha-campos">
             <div className="campo" style={{ flex: 1 }}>
-              <label htmlFor="cartao-validade">Validade</label>
-              <input
-                id="cartao-validade" required placeholder="MM/AAAA"
-                pattern="(0[1-9]|1[0-2])/20[0-9]{2}"
-                title="Use o formato MM/AAAA"
-                value={form.validade}
-                onChange={(e) => setForm({ ...form, validade: e.target.value })}
-              />
+              <label htmlFor="cartao-mes">Mês de validade</label>
+              <select
+                id="cartao-mes" required
+                value={form.validadeMes}
+                onChange={(e) => setCampo("validadeMes", e.target.value)}
+              >
+                <option value="">Mês</option>
+                {MESES.map((m) => <option key={m} value={m}>{String(m).padStart(2, "0")}</option>)}
+              </select>
+            </div>
+            <div className="campo" style={{ flex: 1 }}>
+              <label htmlFor="cartao-ano">Ano de validade</label>
+              <select
+                id="cartao-ano" required
+                value={form.validadeAno}
+                onChange={(e) => setCampo("validadeAno", e.target.value)}
+              >
+                <option value="">Ano</option>
+                {ANOS_VALIDADE.map((a) => <option key={a} value={a}>{a}</option>)}
+              </select>
             </div>
           </div>
 
           <div className="campo">
             <label htmlFor="cartao-titular">Nome impresso no cartão</label>
             <input
-              id="cartao-titular" required
+              id="cartao-titular" required maxLength={100}
               value={form.nomeTitular}
-              onChange={(e) => setForm({ ...form, nomeTitular: e.target.value.toUpperCase() })}
+              onChange={(e) => setCampo("nomeTitular", e.target.value.toUpperCase())}
             />
           </div>
 
@@ -223,7 +275,7 @@ export default function CartoesCliente() {
           </p>
 
           <div className="acoes-form">
-            <button className="btn btn-primario btn-sm" disabled={salvando}>
+            <button className="btn btn-primario btn-sm" disabled={salvando} data-testid="btn-salvar-cartao">
               {salvando ? "Salvando…" : "Salvar cartão"}
             </button>
             <button type="button" className="btn btn-secundario btn-sm" onClick={fechar}>Cancelar</button>
