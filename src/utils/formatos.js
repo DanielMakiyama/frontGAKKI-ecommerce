@@ -20,3 +20,17 @@ export function formatarTelefone(valor) {
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
+
+/** Aplica 000.000.000-00 conforme se digita (RN0026). */
+export function formatarCpf(valor) {
+  const d = String(valor).replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
+/** Mantém só os dígitos — o backend grava CPF, CEP e telefone sem máscara. */
+export function somenteDigitos(valor) {
+  return String(valor ?? "").replace(/\D/g, "");
+}
