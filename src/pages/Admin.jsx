@@ -21,6 +21,9 @@ export default function Admin() {
         {abas.map(([chave, rotulo]) => (
           <button
             key={chave}
+            // Seletor estavel para os testes: o rotulo e texto de
+            // interface e pode mudar; a chave da aba, nao.
+            data-aba={chave}
             className="link"
             style={{ color: aba === chave ? "var(--cor-latao)" : "#4a3221", borderBottom: aba === chave ? "2px solid var(--cor-latao)" : "none" }}
             onClick={() => setAba(chave)}
@@ -292,20 +295,36 @@ function GerenciarClientes() {
 
       <div className="campo" style={{ maxWidth: 320, marginBottom: "1rem" }}>
         <label>Buscar por nome</label>
-        <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="nome do cliente…" />
+        <input
+          data-testid="busca-cliente"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          placeholder="nome do cliente…"
+        />
       </div>
 
       <table className="tabela-simples card card-pad">
         <thead><tr><th>Código</th><th>Nome</th><th>E-mail</th><th>Status</th><th></th></tr></thead>
         <tbody>
           {clientes.map((c) => (
-            <tr key={c.id}>
+            <tr key={c.id} data-cliente={c.id}>
               <td>{c.codigo}</td>
               <td>{c.nome}</td>
               <td>{c.email}</td>
-              <td><span className={`status-tag ${c.ativo ? "status-ENTREGUE" : "status-CANCELADA"}`}>{c.ativo ? "Ativo" : "Inativo"}</span></td>
               <td>
-                <button className={`btn btn-sm ${c.ativo ? "btn-perigo" : "btn-primario"}`} onClick={() => alternarStatus(c)}>
+                <span
+                  data-status={c.ativo ? "ativo" : "inativo"}
+                  className={`status-tag ${c.ativo ? "status-ENTREGUE" : "status-CANCELADA"}`}
+                >
+                  {c.ativo ? "Ativo" : "Inativo"}
+                </span>
+              </td>
+              <td>
+                <button
+                  data-testid="btn-alternar-status"
+                  className={`btn btn-sm ${c.ativo ? "btn-perigo" : "btn-primario"}`}
+                  onClick={() => alternarStatus(c)}
+                >
                   {c.ativo ? "Inativar" : "Ativar"}
                 </button>
               </td>

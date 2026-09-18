@@ -159,7 +159,18 @@ export default function EnderecosCliente() {
       ) : (
         <ul className="lista-salvos">
           {enderecos.map((e) => (
-            <li key={e.id} className={`item-salvo${e.principal ? " destacado" : ""}`} data-endereco={e.id}>
+            // data-apelido e data-principal existem para o teste
+            // automatizado: o apelido é o que o usuário reconhece na tela,
+            // e o id só é conhecido depois de salvar. data-principal
+            // evita depender do selo visual, que o CSS escreve em
+            // maiúsculas.
+            <li
+              key={e.id}
+              className={`item-salvo${e.principal ? " destacado" : ""}`}
+              data-endereco={e.id}
+              data-apelido={e.apelido}
+              data-principal={e.principal}
+            >
               <div className="item-salvo-dados">
                 <strong>
                   {e.apelido}
@@ -182,17 +193,23 @@ export default function EnderecosCliente() {
                     className="btn btn-secundario btn-sm"
                     onClick={() => tornarPrincipal(e.id)}
                     title="Usar como endereço principal"
+                    data-acao="principal"
                   >
                     <Star size={14} strokeWidth={2} /> Principal
                   </button>
                 )}
-                <button className="btn btn-secundario btn-sm" onClick={() => abrirEdicao(e)}>
+                <button
+                  className="btn btn-secundario btn-sm"
+                  onClick={() => abrirEdicao(e)}
+                  data-acao="alterar"
+                >
                   <Pencil size={14} strokeWidth={2} /> Alterar
                 </button>
                 <button
                   className="btn-icone-perigo"
                   onClick={() => remover(e)}
                   aria-label={`Remover endereço ${e.apelido}`}
+                  data-acao="remover"
                 >
                   <Trash2 size={16} strokeWidth={1.8} />
                 </button>
