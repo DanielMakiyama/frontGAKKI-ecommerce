@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
+import { somenteDigitos } from "../utils/formatos";
 
 export default function Admin() {
   const [aba, setAba] = useState("pedidos");
@@ -266,16 +267,60 @@ function GerenciarTrocas() {
 
 // --------------------------- CLIENTES ---------------------------
 
+const FILTROS_VAZIOS = { nome: "", email: "", cpf: "", codigo: "", ativo: "" };
+
+/**
+ * RF0024 — consulta de clientes por filtro.
+ *
+ * O requisito é explícito: "todos os campos utilizados para identificação
+ * do cliente podem ser utilizados como filtro, tanto de forma combinada
+ * como de forma isolada". Por isso são cinco campos, e não uma busca só.
+ *
+ * Os filtros são aplicados por um botão, e não a cada tecla digitada.
+ * Com cinco campos, a busca ao vivo dispararia uma requisição por
+ * caractere em cada um deles — e deixaria o resultado na tela dependente
+ * de quando a última resposta chegou, que é como se produz um teste
+ * intermitente.
+ */
 function GerenciarClientes() {
   const [clientes, setClientes] = useState([]);
-  const [nome, setNome] = useState("");
+
+  // `form` é o que está digitado; `aplicados` é o que foi de fato
+  // consultado. Separar os dois é o que faz o botão ter efeito.
+  const [form, setForm] = useState(FILTROS_VAZIOS);
+  const [aplicados, setAplicados] = useState(FILTROS_VAZIOS);
+
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
 
   function carregar() {
-    api.listarClientes(nome ? { nome, size: 50 } : { size: 50 }).then((page) => setClientes(page.content || []));
+    const params = { size: 50 };
+    if (aplicados.nome) params.nome = aplicados.nome;
+    if (aplicados.email) params.email = aplicados.email;
+    if (aplicados.cpf) params.cpf = somenteDigitos(aplicados.cpf);
+    if (aplicados.codigo) params.codigo = aplicados.codigo;
+    if (aplicados.ativo) params.ativo = aplicados.ativo === "ativos";
+
+    api.listarClientes(params)
+      .then((page) => setClientes(page.content || []))
+      .catch((e) => setErro(e.message));
   }
-  useEffect(carregar, [nome]);
+  useEffect(carregar, [aplicados]);
+
+  function setCampo(campo, valor) {
+    setForm((f) => ({ ...f, [campo]: valor }));
+  }
+
+  function filtrar(e) {
+    e.preventDefault();
+    setErro(""); setMensagem("");
+    setAplicados(form);
+  }
+
+  function limpar() {
+    setForm(FILTROS_VAZIOS);
+    setAplicados(FILTROS_VAZIOS);
+  }
 
   async function alternarStatus(cliente) {
     setErro(""); setMensagem("");
@@ -290,24 +335,86 @@ function GerenciarClientes() {
 
   return (
     <div>
-      {erro && <div className="erro-form">{erro}</div>}
+      {erro && <div className="erro-form" data-testid="erro-clientes">{erro}</div>}
       {mensagem && <p style={{ color: "var(--cor-sucesso)" }}>{mensagem}</p>}
 
-      <div className="campo" style={{ maxWidth: 320, marginBottom: "1rem" }}>
-        <label>Buscar por nome</label>
-        <input
-          data-testid="busca-cliente"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          placeholder="nome do cliente…"
-        />
-      </div>
+      <form onSubmit={filtrar} className="card card-pad" style={{ marginBottom: "1rem" }}>
+        <h4 style={{ marginBottom: ".8rem" }}>Filtrar clientes</h4>
+
+        <div className="linha-campos">
+          <div className="campo" style={{ flex: 2 }}>
+            <label htmlFor="filtro-nome">Nome</label>
+            <input
+              id="filtro-nome" data-testid="busca-cliente" placeholder="parte do nome…"
+              value={form.nome}
+              onChange={(e) => setCampo("nome", e.target.value)}
+            />
+          </div>
+          <div className="campo" style={{ flex: 2 }}>
+            <label htmlFor="filtro-email">E-mail</label>
+            <input
+              id="filtro-email" placeholder="parte do e-mail…"
+              value={form.email}
+              onChange={(e) => setCampo("email", e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="linha-campos">
+          <div className="campo" style={{ flex: 1 }}>
+            <label htmlFor="filtro-cpf">CPF</label>
+            <input
+              id="filtro-cpf" placeholder="somente números" inputMode="numeric"
+              value={form.cpf}
+              onChange={(e) => setCampo("cpf", e.target.value)}
+            />
+          </div>
+          <div className="campo" style={{ flex: 1 }}>
+            <label htmlFor="filtro-codigo">Código</label>
+            <input
+              id="filtro-codigo" placeholder="CLI-0001"
+              value={form.codigo}
+              onChange={(e) => setCampo("codigo", e.target.value)}
+            />
+          </div>
+          <div className="campo" style={{ flex: 1 }}>
+            <label htmlFor="filtro-status">Status</label>
+            <select
+              id="filtro-status"
+              value={form.ativo}
+              onChange={(e) => setCampo("ativo", e.target.value)}
+            >
+              <option value="">Todos</option>
+              <option value="ativos">Somente ativos</option>
+              <option value="inativos">Somente inativos</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="acoes-form">
+          <button className="btn btn-primario btn-sm" data-testid="btn-filtrar">Filtrar</button>
+          <button
+            type="button" className="btn btn-secundario btn-sm"
+            onClick={limpar} data-testid="btn-limpar-filtros"
+          >
+            Limpar
+          </button>
+        </div>
+      </form>
+
+      <p className="contagem-resultados">
+        <strong data-testid="total-clientes">{clientes.length}</strong>{" "}
+        {clientes.length === 1 ? "cliente encontrado" : "clientes encontrados"}
+      </p>
 
       <table className="tabela-simples card card-pad">
         <thead><tr><th>Código</th><th>Nome</th><th>E-mail</th><th>Status</th><th></th></tr></thead>
         <tbody>
           {clientes.map((c) => (
-            <tr key={c.id} data-cliente={c.id}>
+            // data-codigo além do id: o teste da RF0024 conhece os
+            // clientes do seed pelo código (CLI-0002), não pelo id, que
+            // depende da ordem em que o banco foi populado.
+            <tr key={c.id} data-cliente={c.id} data-codigo={c.codigo}>
               <td>{c.codigo}</td>
               <td>{c.nome}</td>
               <td>{c.email}</td>
