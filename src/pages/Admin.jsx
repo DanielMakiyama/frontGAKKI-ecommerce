@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { somenteDigitos } from "../utils/formatos";
 
@@ -293,6 +293,21 @@ function GerenciarClientes() {
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
 
+  /**
+   * Número da última consulta disparada.
+   *
+   * Sem ele, a tela sofre de respostas fora de ordem: a consulta sem
+   * filtro devolve 50 registros e demora; a filtrada devolve um e volta
+   * rápido. Se a filtrada chega primeiro, a lenta ainda está a caminho —
+   * e, quando chega, sobrescreve a lista já filtrada pela completa. A
+   * tela fica mostrando todo mundo, sem erro nenhum, e não se recupera.
+   *
+   * `useRef` e não `useState` de propósito: é preciso comparar com o
+   * valor do momento em que a resposta chega, não com o da renderização
+   * que disparou a requisição.
+   */
+  const ultimaConsulta = useRef(0);
+
   function carregar() {
     const params = { size: 50 };
     if (aplicados.nome) params.nome = aplicados.nome;
@@ -301,9 +316,12 @@ function GerenciarClientes() {
     if (aplicados.codigo) params.codigo = aplicados.codigo;
     if (aplicados.ativo) params.ativo = aplicados.ativo === "ativos";
 
+    const minhaVez = ++ultimaConsulta.current;
+    const aindaVale = () => minhaVez === ultimaConsulta.current;
+
     api.listarClientes(params)
-      .then((page) => setClientes(page.content || []))
-      .catch((e) => setErro(e.message));
+      .then((page) => { if (aindaVale()) setClientes(page.content || []); })
+      .catch((e) => { if (aindaVale()) setErro(e.message); });
   }
   useEffect(carregar, [aplicados]);
 

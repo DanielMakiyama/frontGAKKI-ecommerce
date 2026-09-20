@@ -154,7 +154,16 @@ export default function CartoesCliente() {
       ) : (
         <ul className="lista-salvos">
           {cartoes.map((c) => (
-            <li key={c.id} className={`item-salvo${c.preferencial ? " destacado" : ""}`} data-cartao={c.id}>
+            // data-apelido e data-preferencial existem para o teste
+            // automatizado: o apelido é o que o usuário reconhece na
+            // tela, e o id só é conhecido depois de salvar.
+            <li
+              key={c.id}
+              className={`item-salvo${c.preferencial ? " destacado" : ""}`}
+              data-cartao={c.id}
+              data-apelido={c.apelido}
+              data-preferencial={c.preferencial}
+            >
               <div className="item-salvo-dados">
                 <strong>
                   {c.apelido}
@@ -172,17 +181,23 @@ export default function CartoesCliente() {
                     className="btn btn-secundario btn-sm"
                     onClick={() => tornarPreferencial(c.id)}
                     title="Usar como cartão preferencial"
+                    data-acao="preferencial"
                   >
                     <Star size={14} strokeWidth={2} /> Preferencial
                   </button>
                 )}
-                <button className="btn btn-secundario btn-sm" onClick={() => abrirEdicao(c)}>
+                <button
+                  className="btn btn-secundario btn-sm"
+                  onClick={() => abrirEdicao(c)}
+                  data-acao="alterar"
+                >
                   <Pencil size={14} strokeWidth={2} /> Alterar
                 </button>
                 <button
                   className="btn-icone-perigo"
                   onClick={() => remover(c)}
                   aria-label={`Remover cartão ${c.apelido}`}
+                  data-acao="remover"
                 >
                   <Trash2 size={16} strokeWidth={1.8} />
                 </button>
