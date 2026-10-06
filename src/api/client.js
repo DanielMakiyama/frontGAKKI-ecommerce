@@ -43,7 +43,31 @@ const PRONTOS = [
   "listarClientes",
   "inativarCliente",
   "ativarCliente",
+  // Catálogo (RF0011) — rotas públicas
+  "listarInstrumentos",
+  "buscarInstrumento",
+  // Carrinho (RF0031, RF0032, RF0034)
+  "verCarrinho",
+  "adicionarAoCarrinho",
+  "atualizarQuantidadeCarrinho",
+  "removerDoCarrinho",
+  "preverFrete",
+  // Cupons (RF0037)
+  "meusCupons",
+  // Pedidos (RF0033, RF0038)
+  "finalizarCompra",
+  "meusPedidos",
 ];
+
+// Ainda no mock, de propósito:
+//
+// listarCategorias / listarFabricantes — não há endpoint nesta fatia. O
+//   catálogo usa os dois só para montar os filtros, e já trata a falha com
+//   catch silencioso. Consequência: filtrar por categoria não tem efeito
+//   contra o backend real, porque o id vem do mock. Fora do roteiro da
+//   apresentação.
+// cancelarPedido, confirmarRecebimentoPedido, trocas, admin de pedidos,
+//   estoque, análise e IA — fases futuras (RF0039 em diante).
 
 // O padrão já aponta para o backend com o prefixo de versão, para o
 // projeto rodar recém-clonado sem ninguém precisar criar um .env.
@@ -127,19 +151,26 @@ const apiReal = {
   atualizarCartao: (id, payload) => request(`/clientes/me/cartoes/${id}`, { method: "PUT", body: payload, auth: true }),
   removerCartao: (id) => request(`/clientes/me/cartoes/${id}`, { method: "DELETE", auth: true }),
   definirCartaoPreferencial: (id) => request(`/clientes/me/cartoes/${id}/preferencial`, { method: "PATCH", auth: true }),
-  meusCupons: () => request("/clientes/me/cupons", { auth: true }),
+  // Cupons do cliente: a rota é /cupons, não /clientes/me/cupons — cupom
+  // pertence ao cliente mas não é sub-recurso do cadastro dele.
+  meusCupons: () => request("/cupons", { auth: true }),
 
   // Carrinho
   verCarrinho: () => request("/carrinho", { auth: true }),
   adicionarAoCarrinho: (instrumentoId, quantidade) =>
     request("/carrinho/itens", { method: "POST", body: { instrumentoId, quantidade }, auth: true }),
+  // PUT com corpo, não PATCH com query string: a quantidade é o estado
+  // novo do item, não um parâmetro de busca.
   atualizarQuantidadeCarrinho: (itemId, quantidade) =>
-    request(`/carrinho/itens/${itemId}?quantidade=${quantidade}`, { method: "PATCH", auth: true }),
+    request(`/carrinho/itens/${itemId}`, { method: "PUT", body: { quantidade }, auth: true }),
   removerDoCarrinho: (itemId) => request(`/carrinho/itens/${itemId}`, { method: "DELETE", auth: true }),
 
   // Pedidos (cliente)
-  finalizarCompra: (payload) => request("/pedidos/finalizar", { method: "POST", body: payload, auth: true }),
-  meusPedidos: () => request("/pedidos/meus", { auth: true }),
+  finalizarCompra: (payload) => request("/pedidos", { method: "POST", body: payload, auth: true }),
+  // A API devolve página; a tela espera lista. Desembrulhar aqui mantém o
+  // Pedidos.jsx intacto — é exatamente o papel desta camada, adaptar dois
+  // contratos sem contaminar nenhum dos dois.
+  meusPedidos: () => request("/pedidos", { auth: true }).then((pagina) => pagina.content ?? []),
   cancelarPedido: (id) => request(`/pedidos/${id}/cancelar`, { method: "POST", auth: true }),
   confirmarRecebimentoPedido: (id) => request(`/pedidos/${id}/confirmar-recebimento`, { method: "POST", auth: true }),
 
@@ -147,7 +178,10 @@ const apiReal = {
   solicitarTroca: (payload) => request("/trocas", { method: "POST", body: payload, auth: true }),
   minhasTrocas: () => request("/trocas/minhas", { auth: true }),
   informarEnvioTroca: (id) => request(`/trocas/${id}/informar-envio`, { method: "POST", auth: true }),
-  preverFrete: (enderecoId) => request(`/carrinho/frete?enderecoId=${enderecoId}`, { auth: true }),
+  // RF0034 — o parâmetro chama enderecoEntregaId no backend; o nome
+  // completo evita confundir com o endereço de cobrança.
+  preverFrete: (enderecoId) =>
+    request(`/carrinho/frete?enderecoEntregaId=${enderecoId}`, { auth: true }),
 
   // Admin — clientes
   listarClientes: (params = {}) => {
