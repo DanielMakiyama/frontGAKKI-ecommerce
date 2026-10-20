@@ -226,7 +226,7 @@ export default function Catalogo() {
               )}
             </div>
           ) : (
-            <div className="grade-produtos">
+            <div className="grade-produtos" data-testid="grade-produtos">
               {visiveis.map((i) => (
                 <ProdutoCard key={i.id} produto={i} />
               ))}

@@ -20,21 +20,21 @@ export default function Cupons() {
       </div>
 
       {cupons.length === 0 ? (
-        <p>Você ainda não tem nenhum cupom.</p>
+        <p data-testid="sem-cupons">Você ainda não tem nenhum cupom.</p>
       ) : (
-        <table className="tabela-simples card card-pad">
+        <table className="tabela-simples card card-pad" data-testid="tabela-cupons">
           <thead>
             <tr><th>Código</th><th>Tipo</th><th>Valor</th><th>Válido até</th><th>Status</th></tr>
           </thead>
           <tbody>
             {cupons.map((c) => (
-              <tr key={c.id}>
-                <td><strong>{c.codigo}</strong></td>
-                <td>{c.tipo}</td>
-                <td>{c.valor?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
+              <tr key={c.id} data-testid="linha-cupom" data-codigo={c.codigo}>
+                <td><strong data-testid="cupom-codigo">{c.codigo}</strong></td>
+                <td data-testid="cupom-tipo">{c.tipo}</td>
+                <td data-testid="cupom-valor">{c.valor?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
                 <td>{c.validoAte ? new Date(c.validoAte).toLocaleDateString("pt-BR") : "—"}</td>
                 <td>
-                  <span className={`status-tag ${c.utilizado ? "status-CANCELADA" : "status-ENTREGUE"}`}>
+                  <span className={`status-tag ${c.utilizado ? "status-CANCELADA" : "status-ENTREGUE"}`} data-testid="cupom-status">
                     {c.utilizado ? "Utilizado" : "Disponível"}
                   </span>
                 </td>

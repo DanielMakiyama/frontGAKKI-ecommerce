@@ -92,7 +92,7 @@ export default function ProdutoDetalhe() {
 
         <div className="produto-compra">
           <span className="fabricante-destaque">{produto.fabricante}</span>
-          <h1>{produto.nome}</h1>
+          <h1 data-testid="produto-nome">{produto.nome}</h1>
 
           <div className="lista-categorias">
             {categorias.map((c) => (
@@ -103,13 +103,13 @@ export default function ProdutoDetalhe() {
           <p className="descricao-produto">{produto.descricao}</p>
 
           <div className="bloco-valores">
-            <span className="preco-grande">{formatarBRL(produto.valorVenda)}</span>
+            <span className="preco-grande" data-testid="produto-preco">{formatarBRL(produto.valorVenda)}</span>
             <span className="parcelamento">
               ou {PARCELAS}x de {formatarBRL(produto.valorVenda / PARCELAS)} sem juros
             </span>
           </div>
 
-          <p className={`aviso-estoque${semEstoque ? " indisponivel" : ""}`}>
+          <p className={`aviso-estoque${semEstoque ? " indisponivel" : ""}`} data-testid="produto-estoque">
             {semEstoque
               ? "Sem estoque no momento"
               : poucasUnidades
@@ -117,9 +117,9 @@ export default function ProdutoDetalhe() {
                 : `${estoque} unidades em estoque`}
           </p>
 
-          {erro && <div className="erro-form">{erro}</div>}
+          {erro && <div className="erro-form" data-testid="erro-produto">{erro}</div>}
           {mensagem && (
-            <p className="aviso-sucesso" role="status">
+            <p className="aviso-sucesso" role="status" data-testid="aviso-adicionado">
               <Check size={16} strokeWidth={2.5} /> {mensagem}{" "}
               <Link to="/carrinho">Ver carrinho</Link>
             </p>
@@ -135,6 +135,7 @@ export default function ProdutoDetalhe() {
 
             <button
               className="btn btn-primario btn-comprar"
+              data-testid="btn-adicionar-carrinho"
               disabled={semEstoque || enviando}
               onClick={handleAdicionar}
             >

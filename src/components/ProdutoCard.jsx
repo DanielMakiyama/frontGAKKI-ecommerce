@@ -30,13 +30,17 @@ export default function ProdutoCard({ produto }) {
   const poucasUnidades = !semEstoque && produto.quantidadeEstoque <= 5;
 
   return (
-    <article className={`card produto-card${semEstoque ? " esgotado" : ""}`}>
+    <article
+      className={`card produto-card${semEstoque ? " esgotado" : ""}`}
+      data-testid="produto-card"
+      data-produto-id={produto.id}
+    >
       <div className="produto-midia">
         <IconeInstrumento categoria={categoriaPrincipal} />
 
-        {semEstoque && <span className="selo selo-esgotado">Esgotado</span>}
+        {semEstoque && <span className="selo selo-esgotado" data-testid="selo-esgotado">Esgotado</span>}
         {poucasUnidades && (
-          <span className="selo selo-alerta">
+          <span className="selo selo-alerta" data-testid="selo-alerta">
             {produto.quantidadeEstoque === 1 ? "Última unidade" : `Restam ${produto.quantidadeEstoque}`}
           </span>
         )}
@@ -56,7 +60,7 @@ export default function ProdutoCard({ produto }) {
         <span className="categoria-tag">{categoriaPrincipal}</span>
 
         <h3>
-          <Link to={`/produtos/${produto.id}`} className="link-cobertura">
+          <Link to={`/produtos/${produto.id}`} className="link-cobertura" data-testid="produto-card-link">
             {produto.nome}
           </Link>
         </h3>
@@ -64,7 +68,7 @@ export default function ProdutoCard({ produto }) {
         <span className="fabricante">{produto.fabricante}</span>
 
         <div className="bloco-preco">
-          <span className="preco">{formatarBRL(produto.valorVenda)}</span>
+          <span className="preco" data-testid="produto-card-preco">{formatarBRL(produto.valorVenda)}</span>
           <span className="parcelamento">
             ou {PARCELAS}x de {formatarBRL(produto.valorVenda / PARCELAS)} sem juros
           </span>

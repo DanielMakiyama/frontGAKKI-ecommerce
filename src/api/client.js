@@ -52,11 +52,28 @@ const PRONTOS = [
   "atualizarQuantidadeCarrinho",
   "removerDoCarrinho",
   "preverFrete",
+  // Carrinho — bloqueio e expiração (RN0044, RN0045, RNF0042)
+  "restaurarItemRetirado",
+  "descartarItemRetirado",
+  "descartarItensRetirados",
   // Cupons (RF0037)
   "meusCupons",
   // Pedidos (RF0033, RF0038)
   "finalizarCompra",
   "meusPedidos",
+  // Administração de pedidos (RF0039, RF0040, RN0037, RN0038)
+  "listarPedidosAdmin",
+  "confirmarPagamentoPedido",
+  "despacharPedido",
+  "confirmarEntregaAdmin",
+  // Trocas (RF0041 a RF0045)
+  "solicitarTroca",
+  "minhasTrocas",
+  "listarTrocasAdmin",
+  "autorizarTroca",
+  "confirmarRecebimentoTroca",
+  // Notificações (RN0046)
+  "minhasNotificacoes",
 ];
 
 // Ainda no mock, de propósito:
@@ -66,8 +83,15 @@ const PRONTOS = [
 //   catch silencioso. Consequência: filtrar por categoria não tem efeito
 //   contra o backend real, porque o id vem do mock. Fora do roteiro da
 //   apresentação.
-// cancelarPedido, confirmarRecebimentoPedido, trocas, admin de pedidos,
-//   estoque, análise e IA — fases futuras (RF0039 em diante).
+// estoque, análise de vendas e IA — fases futuras.
+//
+// Fora daqui porque o DRS não os prevê, e não por falta de tempo:
+// cancelarPedido e confirmarRecebimentoPedido (quem move o pedido é o
+// administrador, RF0039 e RF0040), negarTroca (a RF0042 só descreve o
+// caminho da autorização) e informarEnvioTroca / processarTroca (etapas
+// que o protótipo inventou e que o ciclo de três estados do DRS não
+// tem). As telas que os chamavam foram ajustadas; os nomes continuam no
+// mock para não quebrar nada que tenha ficado para trás.
 
 // O padrão já aponta para o backend com o prefixo de versão, para o
 // projeto rodar recém-clonado sem ninguém precisar criar um .env.
@@ -165,19 +189,44 @@ const apiReal = {
     request(`/carrinho/itens/${itemId}`, { method: "PUT", body: { quantidade }, auth: true }),
   removerDoCarrinho: (itemId) => request(`/carrinho/itens/${itemId}`, { method: "DELETE", auth: true }),
 
+  // RNF0042 — itens que saíram do carrinho quando o prazo venceu. As três
+  // rotas devolvem o carrinho inteiro, já com `podeComprar` recalculado,
+  // então a tela não precisa de um GET depois de cada ação.
+  restaurarItemRetirado: (id) =>
+    request(`/carrinho/retirados/${id}/restaurar`, { method: "POST", auth: true }),
+  descartarItemRetirado: (id) =>
+    request(`/carrinho/retirados/${id}`, { method: "DELETE", auth: true }),
+  descartarItensRetirados: () =>
+    request("/carrinho/retirados", { method: "DELETE", auth: true }),
+
   // Pedidos (cliente)
   finalizarCompra: (payload) => request("/pedidos", { method: "POST", body: payload, auth: true }),
   // A API devolve página; a tela espera lista. Desembrulhar aqui mantém o
   // Pedidos.jsx intacto — é exatamente o papel desta camada, adaptar dois
   // contratos sem contaminar nenhum dos dois.
-  meusPedidos: () => request("/pedidos", { auth: true }).then((pagina) => pagina.content ?? []),
-  cancelarPedido: (id) => request(`/pedidos/${id}/cancelar`, { method: "POST", auth: true }),
-  confirmarRecebimentoPedido: (id) => request(`/pedidos/${id}/confirmar-recebimento`, { method: "POST", auth: true }),
+  //
+  // `sort=id,desc` porque o endpoint não ordena por conta própria: sem
+  // isso a primeira página traz os pedidos mais ANTIGOS, e a compra que
+  // o cliente acabou de fazer não aparece depois do vigésimo pedido.
+  meusPedidos: () => request("/pedidos?sort=id,desc", { auth: true }).then((pagina) => pagina.content ?? []),
 
-  // Trocas (cliente)
+  /*
+   * Trocas do cliente (RF0041, RN0041).
+   *
+   * O corpo é { pedidoId, itens: [{ itemPedidoId, quantidade }] }: a
+   * RN0041 fala em "selecionar os itens" de uma compra entregue, no
+   * plural, e o pedido de troca nasce com todos eles de uma vez. O
+   * protótipo mandava um item por vez e uma justificativa — campo que o
+   * DRS não pede em lugar nenhum.
+   */
   solicitarTroca: (payload) => request("/trocas", { method: "POST", body: payload, auth: true }),
-  minhasTrocas: () => request("/trocas/minhas", { auth: true }),
-  informarEnvioTroca: (id) => request(`/trocas/${id}/informar-envio`, { method: "POST", auth: true }),
+  minhasTrocas: () =>
+    request("/trocas?sort=id,desc", { auth: true }).then((pagina) => pagina.content ?? []),
+
+  // RN0046 — notificações do cliente; nesta fase, a autorização da troca.
+  minhasNotificacoes: () =>
+    request("/notificacoes?sort=id,desc", { auth: true }).then((pagina) => pagina.content ?? []),
+
   // RF0034 — o parâmetro chama enderecoEntregaId no backend; o nome
   // completo evita confundir com o endereço de cobrança.
   preverFrete: (enderecoId) =>
@@ -194,20 +243,27 @@ const apiReal = {
   // Admin — pedidos
   listarPedidosAdmin: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return request(`/pedidos?${qs}`, { auth: true });
+    return request(`/pedidos/administracao${qs ? `?${qs}` : ""}`, { auth: true });
   },
-  avancarProcessamento: (id) => request(`/pedidos/${id}/avancar-processamento`, { method: "POST", auth: true }),
   confirmarPagamentoPedido: (id) => request(`/pedidos/${id}/confirmar-pagamento`, { method: "POST", auth: true }),
   despacharPedido: (id) => request(`/pedidos/${id}/despachar`, { method: "POST", auth: true }),
   confirmarEntregaAdmin: (id) => request(`/pedidos/${id}/confirmar-entrega`, { method: "POST", auth: true }),
 
-  // Admin — trocas
-  listarTrocasAdmin: (status) => request(`/trocas${status ? `?status=${status}` : ""}`, { auth: true }),
-  aceitarTroca: (id) => request(`/trocas/${id}/aceitar`, { method: "POST", auth: true }),
-  negarTroca: (id, motivo) => request(`/trocas/${id}/negar`, { method: "POST", body: { motivo }, auth: true }),
+  // Admin — trocas (RF0042 a RF0045)
+  //
+  // Rota própria /trocas/administracao, pelo mesmo critério de
+  // /pedidos/administracao: o escopo está na rota, não no token. Aqui o
+  // `.content` é desembrulhado porque a tela não tem paginação — já em
+  // listarPedidosAdmin a própria tela trata a página, porque ela manda
+  // `size` e filtro.
+  listarTrocasAdmin: (status) =>
+    request(`/trocas/administracao${status ? `?status=${status}` : ""}`, { auth: true })
+      .then((pagina) => pagina.content ?? []),
+  autorizarTroca: (id) => request(`/trocas/${id}/autorizar`, { method: "POST", auth: true }),
+  // RF0044 e RF0045 — o recebimento carrega a decisão sobre o estoque, e
+  // é nele que o cupom de troca é emitido.
   confirmarRecebimentoTroca: (id, retornaEstoque) =>
     request(`/trocas/${id}/confirmar-recebimento`, { method: "POST", body: { retornaEstoque }, auth: true }),
-  processarTroca: (id) => request(`/trocas/${id}/processar`, { method: "POST", auth: true }),
 
   // Admin — catálogo e estoque
   cadastrarInstrumento: (payload) => request("/instrumentos", { method: "POST", body: payload, auth: true }),

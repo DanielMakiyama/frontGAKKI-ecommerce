@@ -23,7 +23,7 @@ export default function Admin() {
           <button
             key={chave}
             // Seletor estavel para os testes: o rotulo e texto de
-            // interface e pode mudar; a chave da aba, nao.
+            // interface e pode mudar a chave da aba, nao.
             data-aba={chave}
             className="link"
             style={{ color: aba === chave ? "var(--cor-latao)" : "#4a3221", borderBottom: aba === chave ? "2px solid var(--cor-latao)" : "none" }}
@@ -46,12 +46,37 @@ export default function Admin() {
 
 // --------------------------- PEDIDOS ---------------------------
 
+/*
+ * A próxima ação de cada status (RF0039, RF0040).
+ *
+ * As chaves são os valores do enum StatusPedido do backend, que são os do
+ * DRS. O protótipo usava EM_ABERTO, PAGAMENTO_REALIZADO e EM_TRANSITO —
+ * nomes que não existem no sistema: com eles, o pedido parava de oferecer
+ * ação logo depois da confirmação do pagamento, justamente no meio do
+ * fluxo. "Avançar para processamento" também saiu: a compra já nasce
+ * EM_PROCESSAMENTO na finalização (RF0038), não há etapa anterior.
+ *
+ * REPROVADA, ENTREGUE e os três estados de troca não aparecem aqui
+ * porque não têm próxima ação do lado do pedido — a troca é conduzida na
+ * aba de trocas.
+ */
 const PROXIMA_ACAO = {
-  EM_ABERTO: { label: "Avançar para processamento", fn: "avancarProcessamento" },
   EM_PROCESSAMENTO: { label: "Confirmar pagamento", fn: "confirmarPagamentoPedido" },
-  PAGAMENTO_REALIZADO: { label: "Despachar", fn: "despacharPedido" },
-  EM_TRANSITO: { label: "Confirmar entrega", fn: "confirmarEntregaAdmin" },
+  APROVADA: { label: "Despachar", fn: "despacharPedido" },
+  EM_TRANSPORTE: { label: "Confirmar entrega", fn: "confirmarEntregaAdmin" },
 };
+
+// Todos os valores de StatusPedido, para o filtro da tela.
+const STATUS_PEDIDO = [
+  "EM_PROCESSAMENTO",
+  "APROVADA",
+  "REPROVADA",
+  "EM_TRANSPORTE",
+  "ENTREGUE",
+  "EM_TROCA",
+  "TROCA_AUTORIZADA",
+  "TROCADO",
+];
 
 function GerenciarPedidos() {
   const [pedidos, setPedidos] = useState([]);
@@ -94,9 +119,9 @@ function GerenciarPedidos() {
 
       <div className="campo" style={{ maxWidth: 260, marginBottom: "1rem" }}>
         <label>Filtrar por status</label>
-        <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)}>
+        <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} data-testid="filtro-status-pedido">
           <option value="">Todos</option>
-          {Object.keys(PROXIMA_ACAO).concat(["ENTREGUE", "CANCELADA"]).map((s) => (
+          {STATUS_PEDIDO.map((s) => (
             <option key={s} value={s}>{s.replaceAll("_", " ")}</option>
           ))}
         </select>
@@ -109,7 +134,7 @@ function GerenciarPedidos() {
           {pedidos.map((p) => {
             const aberto = expandidoId === p.id;
             return (
-              <div className="card" key={p.id}>
+              <div className="card" key={p.id} data-testid="pedido-admin" data-numero={p.numero} data-status={p.status}>
                 <div
                   className="card-pad"
                   style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: ".75rem", cursor: "pointer" }}
@@ -124,7 +149,7 @@ function GerenciarPedidos() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: ".6rem" }}>
                     {PROXIMA_ACAO[p.status] && (
-                      <button className="btn btn-primario btn-sm" onClick={(e) => executarAcao(e, p)}>
+                      <button className="btn btn-primario btn-sm" data-testid="btn-acao-pedido" onClick={(e) => executarAcao(e, p)}>
                         {PROXIMA_ACAO[p.status].label}
                       </button>
                     )}
@@ -195,66 +220,153 @@ function GerenciarPedidos() {
 
 // --------------------------- TROCAS ---------------------------
 
+/*
+ * Fila de trocas do administrador (RF0043, RF0042, RF0044, RF0045).
+ *
+ * Duas ações, não quatro: o ciclo do DRS é EM_TROCA → TROCA_AUTORIZADA →
+ * TROCADO. O protótipo tinha "aceitar/negar", "confirmar recebimento" e
+ * "processar troca" sobre seis estados inventados — a RF0042 só descreve
+ * o caminho da autorização, e a emissão do cupom (RF0045) acontece dentro
+ * da confirmação de recebimento, não num passo à parte.
+ *
+ * A decisão sobre o estoque (RF0044) vira dois botões em vez de um
+ * window.confirm: o diálogo do navegador bloqueia o driver do Selenium, e
+ * duas ações nomeadas deixam a escolha explícita em vez de esconder o
+ * "sim/não" num OK/Cancelar.
+ */
+
+const ROTULOS_STATUS_TROCA = {
+  EM_TROCA: "Aguardando autorização",
+  TROCA_AUTORIZADA: "Autorizada — aguardando chegada dos itens",
+  TROCADO: "Concluída",
+};
+
 function GerenciarTrocas() {
   const [trocas, setTrocas] = useState([]);
+  const [filtroStatus, setFiltroStatus] = useState("");
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
 
   function carregar() {
-    api.listarTrocasAdmin().then(setTrocas);
+    api.listarTrocasAdmin(filtroStatus || undefined)
+      .then(setTrocas)
+      .catch((e) => setErro(e.message));
   }
-  useEffect(carregar, []);
 
-  async function aceitar(id) {
+  useEffect(carregar, [filtroStatus]);
+
+  async function executar(acao, textoDeSucesso) {
     setErro(""); setMensagem("");
-    try { await api.aceitarTroca(id); setMensagem("Troca aceita."); carregar(); } catch (e) { setErro(e.message); }
-  }
-  async function negar(id) {
-    const motivo = window.prompt("Motivo da negativa:");
-    if (!motivo) return;
-    setErro(""); setMensagem("");
-    try { await api.negarTroca(id, motivo); setMensagem("Troca negada."); carregar(); } catch (e) { setErro(e.message); }
-  }
-  async function confirmarRecebimento(id) {
-    const retorna = window.confirm("O item deve retornar ao estoque? OK = sim, Cancelar = não");
-    setErro(""); setMensagem("");
-    try { await api.confirmarRecebimentoTroca(id, retorna); setMensagem("Recebimento confirmado."); carregar(); } catch (e) { setErro(e.message); }
-  }
-  async function processar(id) {
-    setErro(""); setMensagem("");
-    try { await api.processarTroca(id); setMensagem("Troca processada — cupom gerado."); carregar(); } catch (e) { setErro(e.message); }
+    try {
+      await acao();
+      setMensagem(textoDeSucesso);
+      carregar();
+    } catch (e) {
+      setErro(e.message);
+    }
   }
 
   return (
     <div>
       {erro && <div className="erro-form">{erro}</div>}
-      {mensagem && <p style={{ color: "var(--cor-sucesso)" }}>{mensagem}</p>}
+      {mensagem && <p style={{ color: "var(--cor-sucesso)" }} data-testid="mensagem-troca">{mensagem}</p>}
+
+      <div className="campo" style={{ maxWidth: 260, marginBottom: "1rem" }}>
+        <label>Filtrar por status</label>
+        <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} data-testid="filtro-status-troca">
+          <option value="">Todos</option>
+          {Object.keys(ROTULOS_STATUS_TROCA).map((s) => (
+            <option key={s} value={s}>{s.replaceAll("_", " ")}</option>
+          ))}
+        </select>
+      </div>
 
       {trocas.length === 0 ? (
-        <p>Nenhuma solicitação de troca.</p>
+        <p data-testid="sem-trocas-admin">Nenhuma solicitação de troca.</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: ".75rem" }}>
           {trocas.map((t) => (
-            <div className="card card-pad" key={t.id}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div className="card card-pad" key={t.id} data-testid="troca-admin" data-numero={t.numero} data-status={t.status}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: ".75rem", flexWrap: "wrap" }}>
                 <div>
-                  <strong>{t.instrumento}</strong> — pedido {t.pedidoNumero}
-                  <div style={{ fontSize: "0.82rem", color: "var(--cor-texto-suave)" }}>"{t.justificativaCliente}"</div>
+                  <strong data-testid="troca-admin-numero">{t.numero}</strong> — pedido {t.pedidoNumero}
+                  <div style={{ fontSize: "0.82rem", color: "var(--cor-texto-suave)" }}>
+                    {t.clienteNome} · {new Date(t.criadoEm).toLocaleString("pt-BR")}
+                  </div>
                 </div>
-                <span className="status-tag status-EM_TROCA">{t.status.replaceAll("_", " ")}</span>
+                <span className={`status-tag status-${t.status}`} data-testid="troca-admin-status">
+                  {t.status.replaceAll("_", " ")}
+                </span>
               </div>
+
+              <p style={{ fontSize: "0.84rem", margin: ".5rem 0 0", color: "var(--cor-texto-suave)" }}>
+                {ROTULOS_STATUS_TROCA[t.status] ?? t.status.replaceAll("_", " ")}
+              </p>
+
+              <ul style={{ margin: ".5rem 0", paddingLeft: "1.1rem", fontSize: "0.88rem" }}>
+                {t.itens?.map((item) => (
+                  <li key={item.itemTrocaId}>
+                    {item.quantidade}x {item.instrumento} — {item.valorUnitario?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </li>
+                ))}
+              </ul>
+
+              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+                <span>Valor da troca</span>
+                <span data-testid="troca-admin-valor">
+                  {t.valor?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </span>
+              </div>
+
+              {/* RF0044 e RF0045 — concluída, mostra o que foi decidido e o cupom emitido. */}
+              {t.status === "TROCADO" && (
+                <p style={{ fontSize: "0.84rem", marginTop: ".5rem" }} data-testid="troca-admin-desfecho">
+                  {t.retornaEstoque ? "Itens devolvidos ao estoque." : "Itens descartados, sem retorno ao estoque."}
+                  {t.cupomGerado && (
+                    <>
+                      {" "}Cupom <strong>{t.cupomGerado.codigo}</strong> de{" "}
+                      {t.cupomGerado.valor?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} emitido ao cliente.
+                    </>
+                  )}
+                </p>
+              )}
+
               <div style={{ display: "flex", gap: ".5rem", marginTop: ".75rem", flexWrap: "wrap" }}>
-                {t.status === "TROCA_SOLICITADA" && (
+                {/* RF0042 — autorizar gera a notificação da RN0046. */}
+                {t.status === "EM_TROCA" && (
+                  <button
+                    className="btn btn-primario btn-sm"
+                    data-testid="btn-autorizar-troca"
+                    onClick={() => executar(() => api.autorizarTroca(t.id), `Troca ${t.numero} autorizada. O cliente foi notificado.`)}
+                  >
+                    Autorizar troca
+                  </button>
+                )}
+
+                {/* RF0044 — recebimento dos itens, com a decisão sobre o estoque. */}
+                {t.status === "TROCA_AUTORIZADA" && (
                   <>
-                    <button className="btn btn-primario btn-sm" onClick={() => aceitar(t.id)}>Aceitar</button>
-                    <button className="btn btn-perigo btn-sm" onClick={() => negar(t.id)}>Negar</button>
+                    <button
+                      className="btn btn-primario btn-sm"
+                      data-testid="btn-receber-troca-com-estoque"
+                      onClick={() => executar(
+                        () => api.confirmarRecebimentoTroca(t.id, true),
+                        `Troca ${t.numero} concluída: itens de volta ao estoque e cupom emitido.`,
+                      )}
+                    >
+                      Recebido — devolver ao estoque
+                    </button>
+                    <button
+                      className="btn btn-secundario btn-sm"
+                      data-testid="btn-receber-troca-sem-estoque"
+                      onClick={() => executar(
+                        () => api.confirmarRecebimentoTroca(t.id, false),
+                        `Troca ${t.numero} concluída: itens descartados e cupom emitido.`,
+                      )}
+                    >
+                      Recebido — descartar itens
+                    </button>
                   </>
-                )}
-                {t.status === "ITEM_ENVIADO" && (
-                  <button className="btn btn-primario btn-sm" onClick={() => confirmarRecebimento(t.id)}>Confirmar recebimento do item</button>
-                )}
-                {t.status === "ITEM_RECEBIDO" && (
-                  <button className="btn btn-primario btn-sm" onClick={() => processar(t.id)}>Processar troca (gerar cupom)</button>
                 )}
               </div>
             </div>

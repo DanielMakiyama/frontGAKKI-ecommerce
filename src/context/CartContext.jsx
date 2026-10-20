@@ -36,10 +36,42 @@ export function CartProvider({ children }) {
     await recarregar();
   }, [recarregar]);
 
+  /*
+   * RNF0042 — itens retirados do carrinho pela expiração do prazo (RN0045).
+   *
+   * As três rotas devolvem o carrinho já recalculado, então basta guardar
+   * a resposta: não há um segundo GET, e com ele a janela em que a tela
+   * mostraria um estado e o servidor já teria outro.
+   */
+  const restaurarRetirado = useCallback(async (itemRetiradoId) => {
+    setCarrinho(await api.restaurarItemRetirado(itemRetiradoId));
+  }, []);
+
+  const descartarRetirado = useCallback(async (itemRetiradoId) => {
+    setCarrinho(await api.descartarItemRetirado(itemRetiradoId));
+  }, []);
+
+  const descartarRetirados = useCallback(async () => {
+    setCarrinho(await api.descartarItensRetirados());
+  }, []);
+
   const totalItens = carrinho?.itens?.reduce((acc, i) => acc + i.quantidade, 0) || 0;
 
   return (
-    <CartContext.Provider value={{ carrinho, carregando, recarregar, adicionar, atualizarQuantidade, remover, totalItens }}>
+    <CartContext.Provider
+      value={{
+        carrinho,
+        carregando,
+        recarregar,
+        adicionar,
+        atualizarQuantidade,
+        remover,
+        restaurarRetirado,
+        descartarRetirado,
+        descartarRetirados,
+        totalItens,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );
