@@ -1,6 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { somenteDigitos } from "../utils/formatos";
+
+// Carregado só na primeira consulta da análise: o Recharts pesa mais de
+// 300 kB, e quem visita a loja nunca vê este gráfico. Assim ele fica num
+// arquivo à parte e não atrasa a vitrine.
+const GraficoHistoricoVendas = lazy(() => import("../components/GraficoHistoricoVendas"));
 
 export default function Admin() {
   const [aba, setAba] = useState("pedidos");
@@ -702,64 +707,94 @@ function FormularioEstoque() {
   );
 }
 
+/*
+ * RF0055 — histórico de vendas por categoria, em gráfico de linhas
+ * (RNF0043). O gráfico e a tabela de valores ficam no
+ * GraficoHistoricoVendas; aqui ficam só os filtros: período e
+ * categorias.
+ *
+ * As categorias vão para a API pelo NOME, como o mock já fazia. Quem
+ * valida (período, ao menos uma categoria, nome existente) é o backend,
+ * e a mensagem dele aparece no quadro de erro — validar de novo aqui só
+ * criaria duas versões da mesma regra.
+ */
 function AnaliseVendas() {
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [categorias, setCategorias] = useState([]);
   const [categoriasSelecionadas, setCategoriasSelecionadas] = useState([]);
   const [resultado, setResultado] = useState(null);
+  const [consultando, setConsultando] = useState(false);
   const [erro, setErro] = useState("");
 
-  useEffect(() => { api.listarCategorias().then(setCategorias); }, []);
+  useEffect(() => {
+    api.listarCategorias()
+      .then(setCategorias)
+      .catch((e) => setErro(`Não foi possível carregar as categorias: ${e.message}`));
+  }, []);
 
   function toggle(nome) {
     setCategoriasSelecionadas((s) => s.includes(nome) ? s.filter((c) => c !== nome) : [...s, nome]);
   }
 
+  // Cada consulta vai ao backend de novo, sem guardar resultado: uma
+  // compra que acabou de passar a ENTREGUE precisa aparecer na consulta
+  // seguinte (cenário 6 do roteiro).
   async function consultar() {
-    setErro(""); setResultado(null);
+    setErro(""); setResultado(null); setConsultando(true);
     try {
       const dados = await api.historicoVendas(inicio, fim, categoriasSelecionadas);
       setResultado(dados);
     } catch (e) {
       setErro(e.message);
+    } finally {
+      setConsultando(false);
     }
   }
 
   return (
     <div className="card card-pad">
       <h3>Histórico de vendas por categoria</h3>
-      {erro && <div className="erro-form">{erro}</div>}
+      <p style={{ color: "var(--cor-texto-suave)", fontSize: ".88rem", margin: ".25rem 0 1rem" }}>
+        Total vendido por mês, em reais, considerando apenas as compras com status ENTREGUE.
+        O mês é o da data da compra.
+      </p>
+      {erro && <div className="erro-form" data-testid="erro-analise">{erro}</div>}
       <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "flex-end" }}>
-        <div className="campo"><label>Início</label><input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} /></div>
-        <div className="campo"><label>Fim</label><input type="date" value={fim} onChange={(e) => setFim(e.target.value)} /></div>
+        <div className="campo">
+          <label htmlFor="analise-inicio">Início</label>
+          <input id="analise-inicio" type="date" data-testid="analise-inicio" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+        </div>
+        <div className="campo">
+          <label htmlFor="analise-fim">Fim</label>
+          <input id="analise-fim" type="date" data-testid="analise-fim" value={fim} onChange={(e) => setFim(e.target.value)} />
+        </div>
         <div className="campo" style={{ flex: 1, minWidth: 220 }}>
           <label>Categorias</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: ".5rem" }}>
             {categorias.map((c) => (
               <label key={c.id} style={{ display: "flex", gap: ".3rem", fontWeight: 400 }}>
-                <input type="checkbox" checked={categoriasSelecionadas.includes(c.nome)} onChange={() => toggle(c.nome)} />
+                <input
+                  type="checkbox"
+                  data-testid="analise-categoria"
+                  data-categoria={c.nome}
+                  checked={categoriasSelecionadas.includes(c.nome)}
+                  onChange={() => toggle(c.nome)}
+                />
                 {c.nome}
               </label>
             ))}
           </div>
         </div>
-        <button className="btn btn-primario" onClick={consultar}>Consultar</button>
+        <button className="btn btn-primario" data-testid="btn-consultar-analise" onClick={consultar} disabled={consultando}>
+          {consultando ? "Consultando…" : "Consultar"}
+        </button>
       </div>
 
       {resultado && (
-        <table className="tabela-simples" style={{ marginTop: "1.5rem" }}>
-          <thead><tr><th>Categoria</th><th>Mês/Ano</th><th>Total vendido</th></tr></thead>
-          <tbody>
-            {resultado.map((r, i) => (
-              <tr key={i}>
-                <td>{r.categoria}</td>
-                <td>{r.mesAno}</td>
-                <td>{r.totalVendas?.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Suspense fallback={<p style={{ marginTop: "1.5rem", color: "var(--cor-texto-suave)" }}>Carregando gráfico…</p>}>
+          <GraficoHistoricoVendas dados={resultado} categorias={categorias} />
+        </Suspense>
       )}
     </div>
   );

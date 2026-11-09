@@ -74,16 +74,29 @@ const PRONTOS = [
   "confirmarRecebimentoTroca",
   // Notificações (RN0046)
   "minhasNotificacoes",
+  // Análise de vendas (RF0055) e a lista de categorias que ela usa (RN0012)
+  "listarCategorias",
+  "historicoVendas",
 ];
 
 // Ainda no mock, de propósito:
 //
-// listarCategorias / listarFabricantes — não há endpoint nesta fatia. O
-//   catálogo usa os dois só para montar os filtros, e já trata a falha com
-//   catch silencioso. Consequência: filtrar por categoria não tem efeito
-//   contra o backend real, porque o id vem do mock. Fora do roteiro da
-//   apresentação.
-// estoque, análise de vendas e IA — fases futuras.
+// listarFabricantes — não há endpoint nesta fatia. O catálogo usa a lista
+//   só para montar os filtros, e já trata a falha com catch silencioso.
+// estoque e IA — fases futuras.
+//
+// listarCategorias saiu desta lista com a RF0055 (GET /categorias). Além
+// da análise de vendas, ela alimenta a Home e o filtro do Catálogo, que
+// passam a mostrar as categorias reais (Guitarras, Pedais...) em vez das
+// do mock (Cordas, Sopros...). O filtro por categoria continua sem efeito
+// contra o backend, como antes: GET /instrumentos ainda não lê o
+// `categoriaId`.
+//
+// Efeito colateral no formulário "Cadastrar instrumento", que continua no
+// mock: as caixas mostram as categorias reais, mas o cadastro simulado
+// traduz os ids pela tabela do mock. Como esse cadastro não grava nada no
+// banco, o efeito fica restrito à tela simulada, e some quando o cadastro
+// de instrumento ganhar backend.
 //
 // Fora daqui porque o DRS não os prevê, e não por falta de tempo:
 // cancelarPedido e confirmarRecebimentoPedido (quem move o pedido é o
@@ -268,6 +281,8 @@ const apiReal = {
   // Admin — catálogo e estoque
   cadastrarInstrumento: (payload) => request("/instrumentos", { method: "POST", body: payload, auth: true }),
   registrarEntradaEstoque: (payload) => request("/estoque/entrada", { method: "POST", body: payload, auth: true }),
+  // RF0055 — datas em AAAA-MM-DD (o valor do <input type="date">) e uma
+  // `categorias=` por categoria marcada, que o Spring junta numa lista.
   historicoVendas: (inicio, fim, categorias) => {
     const qs = new URLSearchParams({ inicio, fim });
     categorias.forEach((c) => qs.append("categorias", c));
