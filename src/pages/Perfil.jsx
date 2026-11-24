@@ -7,6 +7,7 @@ import { formatarCpf, somenteDigitos } from "../utils/formatos";
 import { GENEROS, TIPOS_TELEFONE } from "../utils/constantes";
 import EnderecosCliente from "../components/EnderecosCliente";
 import CartoesCliente from "../components/CartoesCliente";
+import PreferenciasCliente from "../components/PreferenciasCliente";
 
 /**
  * Perfil do cliente — RF0022 (alterar cadastro), RF0028 (alterar senha)
@@ -263,6 +264,8 @@ export default function Perfil() {
       <EnderecosCliente />
 
       <CartoesCliente />
+
+      <PreferenciasCliente />
 
       <form
         className="card card-pad"

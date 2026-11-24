@@ -77,6 +77,15 @@ const PRONTOS = [
   // Análise de vendas (RF0055) e a lista de categorias que ela usa (RN0012)
   "listarCategorias",
   "historicoVendas",
+  // Preferências musicais (RNF0044)
+  "minhasPreferencias",
+  "salvarPreferencias",
+  // Chatbot de recomendação (RNF0044)
+  "conversaAtual",
+  "novaConversa",
+  "mensagensDaConversa",
+  "enviarMensagemChat",
+  "avaliarResposta",
 ];
 
 // Ainda no mock, de propósito:
@@ -188,6 +197,9 @@ const apiReal = {
   atualizarCartao: (id, payload) => request(`/clientes/me/cartoes/${id}`, { method: "PUT", body: payload, auth: true }),
   removerCartao: (id) => request(`/clientes/me/cartoes/${id}`, { method: "DELETE", auth: true }),
   definirCartaoPreferencial: (id) => request(`/clientes/me/cartoes/${id}/preferencial`, { method: "PATCH", auth: true }),
+  // RNF0044 — sem preferências cadastradas, o GET devolve 204 e vira null.
+  minhasPreferencias: () => request("/clientes/me/preferencias", { auth: true }),
+  salvarPreferencias: (payload) => request("/clientes/me/preferencias", { method: "PUT", body: payload, auth: true }),
   // Cupons do cliente: a rota é /cupons, não /clientes/me/cupons — cupom
   // pertence ao cliente mas não é sub-recurso do cadastro dele.
   meusCupons: () => request("/cupons", { auth: true }),
@@ -289,9 +301,14 @@ const apiReal = {
     return request(`/analise/vendas?${qs}`, { auth: true });
   },
 
-  // IA
-  recomendacoes: (topN = 5) => request(`/recomendacoes?topN=${topN}`, { auth: true }),
-  chat: (mensagem) => request("/recomendacoes/chat", { method: "POST", body: mensagem, auth: true }),
+  // RNF0044 — chatbot. Sem conversa ainda, o GET da atual devolve 204 (null).
+  conversaAtual: () => request("/chat/conversas/atual", { auth: true }),
+  novaConversa: () => request("/chat/conversas", { method: "POST", auth: true }),
+  mensagensDaConversa: (id, size = 30) => request(`/chat/conversas/${id}/mensagens?size=${size}`, { auth: true }),
+  enviarMensagemChat: (conversaId, texto) =>
+    request(`/chat/conversas/${conversaId}/mensagens`, { method: "POST", body: { texto }, auth: true }),
+  avaliarResposta: (mensagemId, avaliacao) =>
+    request(`/chat/mensagens/${mensagemId}/avaliacao`, { method: "PUT", body: { avaliacao }, auth: true }),
 };
 
 // Falha cedo se um nome da lista não existir no apiReal: um erro de

@@ -50,3 +50,25 @@ export const TIPOS_LOGRADOURO = [
   { valor: "ESTRADA", rotulo: "Estrada" },
   { valor: "OUTRO", rotulo: "Outro" },
 ];
+
+/** RNF0044 — nível musical declarado nas preferências. */
+export const NIVEIS_MUSICAIS = [
+  { valor: "INICIANTE", rotulo: "Iniciante" },
+  { valor: "INTERMEDIARIO", rotulo: "Intermediário" },
+  { valor: "AVANCADO", rotulo: "Avançado" },
+];
+
+/** RNF0044 — estilos musicais das preferências. */
+export const ESTILOS_MUSICAIS = [
+  { valor: "ROCK", rotulo: "Rock" },
+  { valor: "BLUES", rotulo: "Blues" },
+  { valor: "METAL", rotulo: "Metal" },
+  { valor: "JAZZ", rotulo: "Jazz" },
+  { valor: "POP", rotulo: "Pop" },
+  { valor: "MPB", rotulo: "MPB" },
+  { valor: "FUNK", rotulo: "Funk" },
+  { valor: "SERTANEJO", rotulo: "Sertanejo" },
+  { valor: "GOSPEL", rotulo: "Gospel" },
+  { valor: "ELETRONICA", rotulo: "Eletrônica" },
+  { valor: "CLASSICA", rotulo: "Clássica" },
+];

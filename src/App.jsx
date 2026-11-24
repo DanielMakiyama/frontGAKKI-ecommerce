@@ -38,7 +38,7 @@ export default function App() {
       </main>
       <Chatbot />
       <footer className="footer-gakki">
-        GAKKI STORE — Protótipo acadêmico (LES 2026) · Java + React + PostgreSQL + Selenium + TensorFlow
+        GAKKI STORE — Protótipo acadêmico (LES 2026) · Java + React + PostgreSQL + Selenium + IA local (Ollama)
       </footer>
     </div>
   );

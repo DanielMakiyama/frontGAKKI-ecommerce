@@ -499,16 +499,34 @@ main { flex: 1; padding: 2.5rem var(--recuo-lateral) 4rem; }   /* faixa aplica o
   font-size: 1.2rem; font-weight: 800; color: var(--cor-tinta); letter-spacing: -0.02em;
 }
 
-.chat-flutuante { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 40; border-radius: var(--raio-pill); box-shadow: var(--sombra-cta); }
-.chat-janela { width: 320px; max-height: 420px; display: flex; flex-direction: column; position: fixed; bottom: 5.5rem; right: 1.5rem; z-index: 41; box-shadow: var(--sombra-forte); overflow: hidden; }
+/* RNF0044 — chatbot de recomendação */
+.chat-flutuante { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 40; border-radius: var(--raio-pill); box-shadow: var(--sombra-cta); display: inline-flex; align-items: center; gap: .4rem; }
+.chat-janela { width: 380px; max-width: calc(100vw - 2rem); height: 560px; max-height: calc(100vh - 7rem); display: flex; flex-direction: column; position: fixed; bottom: 5.5rem; right: 1.5rem; z-index: 41; box-shadow: var(--sombra-forte); overflow: hidden; }
+.chat-cabecalho { display: flex; align-items: center; justify-content: space-between; padding: .7rem 1rem; border-bottom: 1px solid var(--cor-borda); font-weight: 700; }
+.chat-acoes { display: flex; gap: .4rem; }
+.chat-acoes button { display: inline-flex; align-items: center; gap: .25rem; background: none; border: none; color: var(--cor-texto-suave); font-size: .8rem; font-family: inherit; cursor: pointer; }
+.chat-acoes button:hover { color: var(--cor-primaria); }
 .chat-mensagens { flex: 1; overflow-y: auto; padding: 0.8rem; display: flex; flex-direction: column; gap: .5rem; }
-.chat-msg { padding: .55rem .8rem; border-radius: 12px; font-size: 0.87rem; max-width: 85%; }
+.chat-msg { padding: .55rem .8rem; border-radius: 12px; font-size: 0.87rem; max-width: 85%; white-space: pre-wrap; line-height: 1.45; }
 .chat-msg.usuario { align-self: flex-end; background: var(--cor-primaria); color: #fff; }
 .chat-msg.bot { align-self: flex-start; background: var(--cor-fundo-alt); color: var(--cor-texto); }
+.chat-msg.aviso { align-self: center; max-width: 95%; background: none; color: var(--cor-texto-suave); font-size: .8rem; text-align: center; }
+.chat-digitando { align-self: flex-start; font-size: .8rem; font-style: italic; color: var(--cor-texto-suave); }
+.chat-sugestoes { display: flex; flex-wrap: wrap; gap: .35rem; }
+.chat-sugestoes button { border: 1px solid var(--cor-borda); border-radius: var(--raio-pill); background: var(--cor-superficie); color: var(--cor-texto-suave); padding: .3rem .7rem; font-size: .78rem; font-family: inherit; cursor: pointer; text-align: left; }
+.chat-sugestoes button:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); }
+.chat-produtos { display: flex; flex-direction: column; gap: .35rem; margin-top: .6rem; white-space: normal; }
+.chat-produto { display: flex; justify-content: space-between; gap: .6rem; padding: .4rem .6rem; border: 1px solid var(--cor-borda); border-radius: 8px; background: var(--cor-superficie); color: var(--cor-texto); font-size: .8rem; text-decoration: none; }
+.chat-produto:hover { border-color: var(--cor-primaria); }
+.chat-produto strong { white-space: nowrap; }
+.chat-avaliacao { display: flex; align-items: center; gap: .35rem; margin-top: .55rem; font-size: .75rem; color: var(--cor-texto-suave); white-space: normal; }
+.chat-avaliacao button { display: inline-flex; align-items: center; gap: .25rem; border: 1px solid var(--cor-borda); border-radius: var(--raio-pill); background: var(--cor-superficie); color: var(--cor-texto-suave); padding: .15rem .55rem; font-size: .75rem; font-family: inherit; cursor: pointer; }
+.chat-avaliacao button.ativo { background: var(--cor-primaria); border-color: var(--cor-primaria); color: #fff; }
 .chat-input-row { display: flex; border-top: 1px solid var(--cor-borda); }
 .chat-input-row input { flex: 1; border: none; padding: .75rem; font-family: inherit; background: transparent; color: var(--cor-texto); }
 .chat-input-row input:focus { outline: none; }
-.chat-input-row button { border: none; background: var(--cor-primaria); color: #fff; padding: 0 1.1rem; font-weight: 700; }
+.chat-input-row button { border: none; background: var(--cor-primaria); color: #fff; padding: 0 1.1rem; font-weight: 700; cursor: pointer; }
+.chat-input-row button:disabled { opacity: .5; cursor: default; }
 
 table.tabela-simples { width: 100%; border-collapse: collapse; }
 table.tabela-simples th, table.tabela-simples td { text-align: left; padding: 0.7rem 0.8rem; border-bottom: 1px solid var(--cor-borda); font-size: 0.9rem; }
@@ -1052,6 +1070,15 @@ table.tabela-simples tbody tr:hover { background: var(--cor-fundo-alt); }
 
 @media (prefers-reduced-motion: reduce) {
   .cartao-perfil:hover:not(:disabled) { transform: none; }
+}
+
+/* RNF0044 — clientes de demonstração do chatbot, em cartões menores. */
+.titulo-secao-login { margin: 2rem 0 .25rem; font-size: 1.05rem; color: var(--cor-tinta); }
+.subtitulo-secao-login { margin: 0 0 .9rem; font-size: 0.85rem; color: var(--cor-texto-suave); }
+.grade-perfis-compacta { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.grade-perfis-compacta .cartao-perfil { padding: 1rem 1.1rem; gap: .3rem; }
+@media (max-width: 560px) {
+  .grade-perfis-compacta { grid-template-columns: 1fr; }
 }
 
 .rodape-login { margin-top: 1.4rem; font-size: 0.88rem; text-align: center; }

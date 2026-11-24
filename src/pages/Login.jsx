@@ -39,6 +39,14 @@ const CONTAS_DEMO = [
   },
 ];
 
+// RNF0044 — clientes do V1002, com históricos e preferências distintos.
+const CONTAS_CHATBOT = [
+  { id: "lucas", nome: "Lucas Ferreira", email: "lucas.ferreira@example.com", perfil: "Guitarra e pedais · Rock e Blues" },
+  { id: "carla", nome: "Carla Mendes", email: "carla.mendes@example.com", perfil: "Teclado e home studio · Eletrônica e Pop" },
+  { id: "rafael", nome: "Rafael Costa", email: "rafael.costa@example.com", perfil: "Baixo · Funk e Rock" },
+  { id: "ana", nome: "Ana Ribeiro", email: "ana.ribeiro@example.com", perfil: "Violão, iniciante · MPB" },
+].map((c) => ({ ...c, senha: "Senha@2026", destino: "/catalogo" }));
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -93,6 +101,28 @@ export default function Login() {
             <span className="btn btn-primario btn-sm btn-block" aria-hidden="true">
               {entrando === conta.id ? "Entrando…" : "Acessar"}
             </span>
+          </button>
+        ))}
+      </div>
+
+      <h2 className="titulo-secao-login">Clientes do assistente de compras</h2>
+      <p className="subtitulo-secao-login">
+        Contas com históricos e preferências diferentes, para comparar as recomendações do chatbot.
+      </p>
+
+      <div className="grade-perfis grade-perfis-compacta">
+        {CONTAS_CHATBOT.map((conta) => (
+          <button
+            key={conta.id}
+            type="button"
+            data-perfil={conta.id}
+            className="card cartao-perfil"
+            onClick={() => acessar(conta)}
+            disabled={entrando !== null}
+          >
+            <strong>{entrando === conta.id ? "Entrando…" : conta.nome}</strong>
+            <span className="perfil-descricao">{conta.perfil}</span>
+            <span className="email-demo">{conta.email}</span>
           </button>
         ))}
       </div>
