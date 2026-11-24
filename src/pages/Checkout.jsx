@@ -214,17 +214,6 @@ export default function Checkout() {
     );
   }
 
-  if (!carrinho || carrinho.itens.length === 0) {
-    return (
-      <div className="container container-medio">
-        <div className="card card-pad estado-vazio">
-          <p>Seu carrinho está vazio.</p>
-          <Link to="/catalogo" className="btn btn-primario">Ver catálogo</Link>
-        </div>
-      </div>
-    );
-  }
-
   /*
    * RNF0042 — com item retirado pela expiração do prazo, a compra fica
    * desabilitada, e o caminho de volta é o carrinho.
@@ -232,8 +221,9 @@ export default function Checkout() {
    * O botão de "Finalizar compra" lá já vem desabilitado e a finalização
    * é recusada no servidor; esta terceira guarda cobre o caso de quem
    * chegou aqui por URL ou tinha a tela aberta quando o prazo venceu.
+   * Vem antes do carrinho vazio: vencido o prazo, os itens saem do carrinho.
    */
-  if (carrinho.podeComprar === false) {
+  if (carrinho?.podeComprar === false) {
     return (
       <div className="container container-medio">
         <div className="card card-pad estado-vazio" data-testid="checkout-bloqueado">
@@ -242,6 +232,17 @@ export default function Checkout() {
             devolvê-los ou descartá-los.
           </p>
           <Link to="/carrinho" className="btn btn-primario">Ir para o carrinho</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!carrinho || carrinho.itens.length === 0) {
+    return (
+      <div className="container container-medio">
+        <div className="card card-pad estado-vazio">
+          <p>Seu carrinho está vazio.</p>
+          <Link to="/catalogo" className="btn btn-primario">Ver catálogo</Link>
         </div>
       </div>
     );
